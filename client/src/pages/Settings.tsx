@@ -184,9 +184,13 @@ export const SettingsPage: React.FC<{
           >
             <Av n={u.name} url={u.avatarUrl} />
             <div
-              style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-              onClick={() => onOpenModal('emp', u)}
-              title="Click to view/edit user details"
+              style={{ flex: 1, minWidth: 0, cursor: hasMgmtAccess || u.id === user?.id ? 'pointer' : 'default' }}
+              onClick={() => {
+                if (hasMgmtAccess || u.id === user?.id) {
+                  onOpenModal('emp', u);
+                }
+              }}
+              title={hasMgmtAccess || u.id === user?.id ? 'Click to view/edit user details' : u.name}
             >
               <div style={{ fontWeight: 600, fontSize: 14 }}>
                 {u.name}
@@ -211,7 +215,9 @@ export const SettingsPage: React.FC<{
             >
               {u.role === 'management' ? 'Management' : 'Employee'}
             </P>
-            <IB n="edit" onPress={() => onOpenModal('emp', u)} title="Edit user" />
+            {(hasMgmtAccess || u.id === user?.id) && (
+              <IB n="edit" onPress={() => onOpenModal('emp', u)} title="Edit user" />
+            )}
             {u.id !== user?.id && hasMgmtAccess && <IB n="trash" onPress={() => deleteUser(u)} title="Delete user" />}
           </V>
         ))}

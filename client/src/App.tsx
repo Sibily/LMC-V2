@@ -197,7 +197,12 @@ export const App: React.FC = () => {
   const searchItems: SearchResultItem[] = useMemo(() => {
     if (!searchQ) return [];
 
-    const matchClients = clients.filter(
+    // In Employee mode, only clients owned by user or where user is a member
+    const scopedClients = isMgmt
+      ? clients
+      : clients.filter((c) => c.ownerId === user?.id || (c.members || []).some((m) => m.userId === user?.id));
+
+    const matchClients = scopedClients.filter(
       (c) =>
         c.name.toLowerCase().includes(searchQ) ||
         (c.company && c.company.toLowerCase().includes(searchQ)) ||
@@ -206,21 +211,34 @@ export const App: React.FC = () => {
         (c.loc && c.loc.toLowerCase().includes(searchQ))
     );
 
-    const matchTasks = tasks.filter(
+    // In Employee mode, only user's own tasks and reminders
+    const scopedTasks = isMgmt
+      ? tasks
+      : tasks.filter((t) => t.whoUserId === user?.id);
+
+    const matchTasks = scopedTasks.filter(
       (t) =>
         t.title.toLowerCase().includes(searchQ) ||
         (t.desc && t.desc.toLowerCase().includes(searchQ)) ||
         (t.client?.name && t.client.name.toLowerCase().includes(searchQ))
     );
 
-    const matchTeam = team.filter(
-      (u) =>
-        u.name.toLowerCase().includes(searchQ) ||
-        (u.email && u.email.toLowerCase().includes(searchQ)) ||
-        (u.role && u.role.toLowerCase().includes(searchQ))
-    );
+    // Team search: ONLY available in Management mode
+    const matchTeam = isMgmt
+      ? team.filter(
+          (u) =>
+            u.name.toLowerCase().includes(searchQ) ||
+            (u.email && u.email.toLowerCase().includes(searchQ)) ||
+            (u.role && u.role.toLowerCase().includes(searchQ))
+        )
+      : [];
 
-    const matchNotes = notes.filter(
+    // In Employee mode, only notes created by user or on their scoped clients
+    const scopedNotes = isMgmt
+      ? notes
+      : notes.filter((n) => n.byUserId === user?.id || scopedClients.some((c) => c.id === n.clientId));
+
+    const matchNotes = scopedNotes.filter(
       (n) =>
         (n.title && n.title.toLowerCase().includes(searchQ)) ||
         (n.body && n.body.toLowerCase().includes(searchQ)) ||
@@ -289,7 +307,7 @@ export const App: React.FC = () => {
         },
       })),
     ];
-  }, [searchQ, clients, tasks, team, notes]);
+  }, [searchQ, clients, tasks, team, notes, isMgmt, user?.id]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {

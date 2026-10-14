@@ -486,8 +486,24 @@ export const EmpModal: React.FC<{
   const [createdInfo, setCreatedInfo] = useState<{ n: string; em: string; pw: string; isEdit?: boolean } | null>(null);
 
   const isSelf = currentUser?.id === user?.id;
-  const canChangeRole = currentUser?.role === 'management';
-  const canDelete = currentUser?.role === 'management' && !isSelf && !!user?.id;
+  const isManager = currentUser?.role === 'management';
+  const canChangeRole = isManager;
+  const canDelete = isManager && !isSelf && !!user?.id;
+
+  if (user && !isSelf && !isManager) {
+    return (
+      <Modal close={onClose} title="Access Restricted">
+        <V style={{ padding: 24, gap: 14, alignItems: 'center', textAlign: 'center' }}>
+          <span style={{ color: '#ef4444', fontWeight: 600, fontSize: 14 }}>
+            Only management can view or edit other team members.
+          </span>
+          <B onPress={onClose} style={{ marginTop: 8 }}>
+            Close
+          </B>
+        </V>
+      </Modal>
+    );
+  }
 
   const genPw = () => {
     const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$';
@@ -498,6 +514,10 @@ export const EmpModal: React.FC<{
   };
 
   const save = async () => {
+    if (user?.id && !isSelf && !isManager) {
+      toast('Permission denied');
+      return;
+    }
     const n = name.trim();
     if (!n) {
       toast('Enter employee name');
