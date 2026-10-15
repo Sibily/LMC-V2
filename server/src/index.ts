@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { initSocketIO } from './services/socket.js';
+import { initDatabase } from './db/init.js';
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import clientsRoutes from './routes/clients.js';
@@ -86,6 +87,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`🚀 Buzzrdesk server running on http://localhost:${PORT}`);
+  try {
+    await initDatabase();
+  } catch (err) {
+    console.error('Database initialization error:', err);
+  }
 });
