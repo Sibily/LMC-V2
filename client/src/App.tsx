@@ -710,7 +710,7 @@ export const App: React.FC = () => {
                 fontFamily: 'inherit',
               }}
             />
-            {searchText ? (
+            {searchText && (
               <IB
                 n="x"
                 s={16}
@@ -721,25 +721,6 @@ export const App: React.FC = () => {
                 }}
                 style={{ width: 24, height: 24, borderRadius: 6 }}
               />
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 2,
-                  background: '#e2e8f0',
-                  borderRadius: 6,
-                  padding: '2px 6px',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#475569',
-                  flexShrink: 0,
-                  userSelect: 'none',
-                }}
-              >
-                <span>⌘</span>
-                <span>K</span>
-              </div>
             )}
           </div>
 
