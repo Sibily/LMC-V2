@@ -106,8 +106,8 @@ export const App: React.FC = () => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   // Login form state
-  const [loginEmail, setLoginEmail] = useState('mohamed@company.ae');
-  const [loginPassword, setLoginPassword] = useState('password123');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
   const wide = windowWidth >= 900;
@@ -620,10 +620,6 @@ export const App: React.FC = () => {
               {loginLoading ? 'Signing in…' : 'Log in'}
             </button>
           </form>
-
-          <span style={{ fontSize: 12, color: MU, textAlign: 'center' }}>
-            Default Admin: <b>mohamed@company.ae</b> / <b>password123</b>
-          </span>
         </V>
       </V>
     );

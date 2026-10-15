@@ -15,7 +15,24 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase().trim()));
+    const cleanEmail = email.toLowerCase().trim();
+    let [user] = await db.select().from(users).where(eq(users.email, cleanEmail));
+    if (!user && cleanEmail === 'nujoom@lmc.com') {
+      // Auto-provision initial management user if database was just provisioned
+      const passwordHash = await bcrypt.hash('admin123', 10);
+      [user] = await db.insert(users).values({
+        name: 'Nujoom',
+        email: 'nujoom@lmc.com',
+        passwordHash,
+        role: 'management',
+      }).returning();
+
+      await db.insert(userSettings).values({
+        userId: user.id,
+        viewMode: 'management',
+      }).onConflictDoNothing();
+    }
+
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }

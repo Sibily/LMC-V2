@@ -30,14 +30,14 @@ export async function seedDatabase() {
     console.log('✅ Default pipeline initialized.');
   }
 
-  // 2. Ensure Default Super Admin exists
-  const existingAdmin = await db.select().from(users).where(eq(users.email, 'mohamed@company.ae'));
+  // 2. Ensure Management User (Nujoom) exists
+  const existingNujoom = await db.select().from(users).where(eq(users.email, 'nujoom@lmc.com'));
   let adminId: string;
-  if (existingAdmin.length === 0) {
-    const passwordHash = await bcrypt.hash('password123', 10);
+  if (existingNujoom.length === 0) {
+    const passwordHash = await bcrypt.hash('admin123', 10);
     const [admin] = await db.insert(users).values({
-      name: 'Mohamed',
-      email: 'mohamed@company.ae',
+      name: 'Nujoom',
+      email: 'nujoom@lmc.com',
       passwordHash,
       role: 'management',
     }).returning();
@@ -48,10 +48,10 @@ export async function seedDatabase() {
       viewMode: 'management',
       customShortcut: null,
     });
-    console.log('✅ Default admin user created: Mohamed (mohamed@company.ae / password123)');
+    console.log('✅ Management user created: Nujoom (nujoom@lmc.com / admin123)');
   } else {
-    adminId = existingAdmin[0].id;
-    console.log('ℹ️ Admin user Mohamed already exists.');
+    adminId = existingNujoom[0].id;
+    console.log('ℹ️ Management user Nujoom already exists.');
   }
 
   // Check if --demo flag passed
