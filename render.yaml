@@ -21,8 +21,6 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
-      - key: CLIENT_URL
-        sync: false
       - key: UPLOAD_DIR
         value: ./uploads
       # Optional Cloud Object Storage (S3 / Cloudflare R2 / Supabase Storage)
