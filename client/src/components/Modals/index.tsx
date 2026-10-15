@@ -131,8 +131,29 @@ export const ClientForm: React.FC<{
           <input style={inp} value={f.loc} onChange={(e) => sf({ ...f, loc: e.target.value })} placeholder="e.g. Dubai" />
         </F>
         <F l="Source">
-          <input style={inp} value={f.source} onChange={(e) => sf({ ...f, source: e.target.value })} placeholder="e.g. Referral" />
+          <select
+            style={inp}
+            value={f.source === 'By advisor' || f.source === 'Other' ? f.source : (f.source ? 'Other' : '')}
+            onChange={(e) => {
+              const val = e.target.value;
+              sf({ ...f, source: val });
+            }}
+          >
+            <option value="">Direct / Walk-in / Social media</option>
+            <option value="By advisor">By advisor</option>
+            <option value="Other">Other referral source</option>
+          </select>
         </F>
+        {(f.source === 'By advisor' || f.source === 'Other') && (
+          <F l={f.source === 'By advisor' ? 'Advisor Name' : 'Referrer Name / Details'}>
+            <input
+              style={inp}
+              placeholder={f.source === 'By advisor' ? 'e.g. Adv. Tariq Al Nuaimi' : 'e.g. Noor partner network'}
+              value={f.referrer || ''}
+              onChange={(e) => sf({ ...f, referrer: e.target.value })}
+            />
+          </F>
+        )}
         {!client && <span style={{ fontSize: 12, color: MU }}>Only the name is required. Add the rest later from the client profile.</span>}
         <B k={1} onPress={save}>
           {client ? 'Save' : 'Create Client'}
@@ -255,6 +276,47 @@ export const TaskForm: React.FC<{
   );
 };
 
+// Legal service preset catalog
+export const LEGAL_SERVICE_OPTIONS = [
+  'Legal Services',
+  'Legal Consultancy',
+  'Legal Advice',
+  'Legal Drafting',
+  'Agreements & Contracts',
+  'Legal Opinion',
+  'Legal Structuring',
+  'Litigation & Arbitration',
+  'Mediation',
+  'Case Analysis',
+  'Civil & Criminal Matters',
+  'Corporate & Commercial',
+  'Employment Disputes',
+  'Consumer Disputes',
+  'Tenancy Disputes',
+  'Asset Protection',
+  'Other / Custom Service',
+];
+
+// Service icon and color rules
+export const SERVICE_ICON_RULES: [RegExp, string, string, string][] = [
+  [/wills|probate|estate planning|inheritance/i, 'book', '#7c3aed', '#f5f3ff'],
+  [/trademark|patent|copyright|intellectual property|industrial design|ip infringement/i, 'shield', '#7c3aed', '#f5f3ff'],
+  [/legal services|legal consultancy|legal advice|legal opinion/i, 'shield', '#0284c7', '#e0f2fe'],
+  [/litigation|arbitration|court|dispute|civil & criminal/i, 'flag', '#dc2626', '#fef2f2'],
+  [/contract|drafting|agreement/i, 'file', '#2563eb', '#eff6ff'],
+  [/corporate|commercial|structuring|setup/i, 'building', '#0d9488', '#f0fdfa'],
+  [/employment|labour/i, 'users', '#ea580c', '#fff7ed'],
+  [/tenancy|rental|real estate/i, 'home', '#16a34a', '#f0fdf4'],
+  [/mediation|negotiation/i, 'chat', '#0d9488', '#f0fdfa'],
+];
+
+export function serviceIconMeta(name: string) {
+  const s = String(name || '');
+  const hit = SERVICE_ICON_RULES.find(([re]) => re.test(s));
+  if (hit) return { icon: hit[1], color: hit[2], bg: hit[3] };
+  return { icon: 'briefcase', color: '#475569', bg: '#f1f5f9' };
+}
+
 // 3. Service Form
 export const SvcForm: React.FC<{
   clientId: string;
@@ -266,17 +328,32 @@ export const SvcForm: React.FC<{
   const { user, toast } = useAuth();
   const [name, setName] = useState(service ? service.name : '');
   const [respUserId, setRespUserId] = useState(service ? service.respUserId : user?.id);
+  const [catalog, setCatalog] = useState<string[]>([]);
 
-  const SV = ['Business Setup', 'Trademark Registration', 'PRO Services', 'Tax Registration', 'Golden Visa'];
+  React.useEffect(() => {
+    api.services.getCatalog().then(setCatalog).catch(() => {});
+  }, []);
+
+  const base = LEGAL_SERVICE_OPTIONS.filter((x) => x !== 'Other / Custom Service');
+  const allServices = Array.from(new Set([...base, ...catalog]));
+  const q = name.trim().toLowerCase();
+  const filtered = q ? allServices.filter((x) => x.toLowerCase().includes(q)) : allServices;
 
   const save = async () => {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      toast('Please enter or select a service name');
+      return;
+    }
     try {
       if (service) {
         await api.services.update(service.id, { name: name.trim(), respUserId });
         toast('Service updated');
       } else {
         await api.services.create(clientId, { name: name.trim(), respUserId });
+        // Automatically save custom service to catalog if not already present
+        if (!allServices.some((x) => x.toLowerCase() === name.trim().toLowerCase())) {
+          api.services.addCatalog(name.trim()).catch(() => {});
+        }
         toast('Service added');
       }
       onSaved();
@@ -289,16 +366,28 @@ export const SvcForm: React.FC<{
   return (
     <Modal title={service ? 'Edit Service' : 'Add Service'} close={onClose}>
       <V style={{ gap: 12 }}>
-        <F l="Service">
+        <F l="Service *">
           <input
+            id="buzzrdesk-custom-service-input"
             style={inp}
-            placeholder="Pick one below or type a service"
+            placeholder="Search legal services or type a custom one..."
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-            {SV.map((x) => {
-              const on = x === name;
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 7,
+              marginTop: 10,
+              maxHeight: 180,
+              overflowY: 'auto',
+              padding: 2,
+            }}
+          >
+            {filtered.slice(0, 15).map((x) => {
+              const on = x.toLowerCase() === name.trim().toLowerCase();
+              const meta = serviceIconMeta(x);
               return (
                 <P
                   key={x}
@@ -307,23 +396,23 @@ export const SvcForm: React.FC<{
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 6,
-                    padding: '8px 14px',
+                    padding: '6px 12px',
                     borderRadius: 20,
                     fontWeight: 600,
-                    fontSize: 13,
-                    border: '1px solid ' + (on ? G : BD),
-                    background: on ? '#f0fdf4' : '#fff',
-                    color: on ? '#15803d' : '#334155',
+                    fontSize: 12.5,
+                    border: '1px solid ' + (on ? meta.color : BD),
+                    background: on ? meta.bg : '#fff',
+                    color: on ? meta.color : '#334155',
                   }}
                 >
-                  {on && <I n="tick" s={14} />}
+                  <I n={meta.icon} s={13} />
                   {x}
                 </P>
               );
             })}
           </div>
         </F>
-        <F l="Responsible">
+        <F l="Responsible Team Member">
           <V style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
             {team.map((u) => (
               <P
@@ -349,7 +438,7 @@ export const SvcForm: React.FC<{
           </V>
         </F>
         <B k={1} onPress={save}>
-          Save
+          {service ? 'Save Changes' : 'Add Service'}
         </B>
       </V>
     </Modal>

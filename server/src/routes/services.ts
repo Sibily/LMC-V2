@@ -100,7 +100,7 @@ router.delete('/:id', authMiddleware, async (req: AuthRequest, res) => {
 router.post('/:id/stage', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { stageId, stageName, note, nextAction, followUpDate, followUpTime, assignUserId, keepCurrent } = req.body;
+    const { stageId, stageName, note, nextAction, followUpDate, followUpTime, assignUserId, keepCurrent, acts } = req.body;
     const user = req.user!;
 
     const [service] = await db.select().from(services).where(eq(services.id, id));
@@ -132,6 +132,7 @@ router.post('/:id/stage', authMiddleware, async (req: AuthRequest, res) => {
       assignUserId: assignUserId || user.id,
       followUpDate: followUpDate || '',
       followUpTime: followUpTime || '',
+      acts: Array.isArray(acts) ? acts : [],
     });
 
     // Auto-create Completed Update Task
@@ -308,6 +309,33 @@ router.put('/:id/pipeline', authMiddleware, async (req: AuthRequest, res) => {
     return res.json(updated);
   } catch (error) {
     return res.status(500).json({ error: 'Failed to customize pipeline' });
+  }
+});
+
+// Get service catalog
+router.get('/catalog', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const { serviceCatalog } = await import('../db/schema.js');
+    const items = await db.select().from(serviceCatalog);
+    return res.json(items.map(i => i.name));
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to fetch service catalog' });
+  }
+});
+
+// Add custom service to catalog
+router.post('/catalog', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const { name, category } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+    const { serviceCatalog } = await import('../db/schema.js');
+    const [inserted] = await db.insert(serviceCatalog).values({
+      name: name.trim(),
+      category: category || 'Legal',
+    }).onConflictDoNothing().returning();
+    return res.status(201).json(inserted || { name: name.trim() });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to add service to catalog' });
   }
 });
 

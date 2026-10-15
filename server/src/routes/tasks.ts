@@ -162,6 +162,42 @@ router.post('/:id/toggle', authMiddleware, async (req: AuthRequest, res) => {
       .where(eq(tasks.id, id))
       .returning();
 
+    // If linked to a client service, automatically log task activity into service history
+    if (task.clientId && task.serviceId) {
+      try {
+        const { serviceHistory, services: sTable } = await import('../db/schema.js');
+        const [srv] = await db.select().from(sTable).where(eq(sTable.id, task.serviceId));
+        const stageName = srv ? ((srv.stagesConfig as any[]).find(s => s.id === srv.curStageId)?.name || 'Task update') : 'Task update';
+        const verb = newDone ? 'Task completed' : 'Task reopened';
+        const actNote = doneNote || task.doneNote || task.note || '';
+
+        await db.insert(serviceHistory).values({
+          serviceId: task.serviceId,
+          stageName,
+          note: `${verb}: ${task.title}`,
+          byUserId: user.id,
+          atDate: `${today} ${timeNow}`,
+          nextAction: '',
+          assignUserId: task.whoUserId || user.id,
+          followUpDate: '',
+          followUpTime: '',
+          acts: [{
+            id: `act-${task.id}-${Date.now()}`,
+            kind: task.type === 'Reminder' ? 'Reminder' : task.type === 'Note' ? 'Note' : 'Task',
+            title: task.title,
+            body: actNote,
+            who: user.name,
+            tid: task.id,
+            date: today,
+            time: timeNow,
+          }],
+        });
+        broadcastDataChange('services', 'history_added', { serviceId: task.serviceId });
+      } catch (err) {
+        console.error('Failed to log task activity:', err);
+      }
+    }
+
     // If marked complete, send notification to creator if creator != current user
     if (newDone && task.byUserId && task.byUserId !== user.id) {
       const [notif] = await db.insert(notifications).values({

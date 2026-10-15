@@ -84,11 +84,14 @@ export const api = {
   // Clients
   clients: {
     list: () => request<any[]>('/clients'),
+    listDeleted: () => request<any[]>('/clients/deleted'),
     get: (id: string) => request<any>(`/clients/${id}`),
     create: (data: any) => request('/clients', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) =>
       request(`/clients/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/clients/${id}`, { method: 'DELETE' }),
+    restore: (id: string) => request(`/clients/${id}/restore`, { method: 'POST' }),
+    permanentDelete: (id: string) => request(`/clients/${id}/permanent`, { method: 'DELETE' }),
     addMember: (clientId: string, userId: string, permission: string) =>
       request(`/clients/${clientId}/members`, {
         method: 'POST',
@@ -96,6 +99,24 @@ export const api = {
       }),
     removeMember: (clientId: string, userId: string) =>
       request(`/clients/${clientId}/members/${userId}`, { method: 'DELETE' }),
+
+    // Documents
+    listDocs: (clientId: string) => request<any[]>(`/clients/${clientId}/docs`),
+    addDoc: (clientId: string, data: any) =>
+      request(`/clients/${clientId}/docs`, { method: 'POST', body: JSON.stringify(data) }),
+    updateDoc: (clientId: string, docId: string, data: any) =>
+      request(`/clients/${clientId}/docs/${docId}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteDoc: (clientId: string, docId: string) =>
+      request(`/clients/${clientId}/docs/${docId}`, { method: 'DELETE' }),
+
+    // Invoices
+    listInvoices: (clientId: string) => request<any[]>(`/clients/${clientId}/invoices`),
+    createInvoice: (clientId: string, data: any) =>
+      request(`/clients/${clientId}/invoices`, { method: 'POST', body: JSON.stringify(data) }),
+    updateInvoice: (clientId: string, invId: string, data: any) =>
+      request(`/clients/${clientId}/invoices/${invId}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteInvoice: (clientId: string, invId: string) =>
+      request(`/clients/${clientId}/invoices/${invId}`, { method: 'DELETE' }),
   },
 
   // Services
@@ -114,6 +135,9 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ stagesConfig }),
       }),
+    getCatalog: () => request<string[]>('/services/catalog'),
+    addCatalog: (name: string, category?: string) =>
+      request('/services/catalog', { method: 'POST', body: JSON.stringify({ name, category }) }),
   },
 
   // Tasks

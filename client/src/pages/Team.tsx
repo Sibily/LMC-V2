@@ -55,7 +55,14 @@ export const TeamPage: React.FC<{
                   </span>
                 </div>
               </V>
-              <IB n="edit" onPress={() => onOpenModal('emp', u)} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <IB
+                  n="lock"
+                  title="Edit credentials"
+                  onPress={() => onOpenModal('cred', { member: u })}
+                />
+                <IB n="edit" title="Edit profile" onPress={() => onOpenModal('emp', u)} />
+              </div>
             </V>
           );
         })}

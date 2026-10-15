@@ -31,8 +31,11 @@ export const clients = pgTable('clients', {
   email: text('email').default('').notNull(),
   loc: text('loc').default('').notNull(),
   source: text('source').default('').notNull(),
+  referrer: text('referrer').default('').notNull(),
   status: text('status').default('Active Client').notNull(), // 'Active Client' | 'Inactive Client' | 'On Hold' | 'Lost Client'
   ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'set null' }),
+  deletedAt: timestamp('deleted_at'),
+  deletedBy: uuid('deleted_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -70,6 +73,7 @@ export const serviceHistory = pgTable('service_history', {
   assignUserId: uuid('assign_user_id').references(() => users.id, { onDelete: 'set null' }),
   followUpDate: text('follow_up_date').default('').notNull(),
   followUpTime: text('follow_up_time').default('').notNull(),
+  acts: jsonb('acts').default([]).notNull(), // Array of { id, kind, title, body, who, date, time, tid }
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -79,6 +83,48 @@ export const defaultPipelines = pgTable('default_pipelines', {
   stagesConfig: jsonb('stages_config').notNull(),
   isDefault: boolean('is_default').default(true).notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// --- Client Documents & Invoices ---
+export const clientDocuments = pgTable('client_documents', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  type: text('type').default('Other').notNull(), // 'Passport' | 'Emirates ID' | 'Visa' | 'Trade licence' | 'Contract' | 'Invoice / receipt' | 'Photo' | 'Other'
+  customType: text('custom_type'),
+  serviceId: uuid('service_id').references(() => services.id, { onDelete: 'set null' }),
+  note: text('note').default('').notNull(),
+  fileName: text('file_name'),
+  fileSize: text('file_size').default('0'),
+  fileUrl: text('file_url'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const clientInvoices = pgTable('client_invoices', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'cascade' }).notNull(),
+  invoiceNo: text('invoice_no').notNull(),
+  serviceId: uuid('service_id').references(() => services.id, { onDelete: 'set null' }),
+  description: text('description').default('').notNull(),
+  amount: text('amount').default('0').notNull(),
+  vatApplicable: boolean('vat_applicable').default(true).notNull(),
+  vatAmount: text('vat_amount').default('0').notNull(),
+  totalAmount: text('total_amount').default('0').notNull(),
+  issuedDate: text('issued_date').notNull(),
+  dueDate: text('due_date').notNull(),
+  status: text('status').default('Draft').notNull(), // 'Draft' | 'Sent' | 'Paid' | 'Overdue'
+  note: text('note').default('').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const serviceCatalog = pgTable('service_catalog', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull().unique(),
+  category: text('category').default('Legal').notNull(),
+  isPreset: boolean('is_preset').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 // --- Tasks & Reminders ---
@@ -216,11 +262,39 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
     fields: [clients.ownerId],
     references: [users.id],
   }),
+  deletedByUser: one(users, {
+    fields: [clients.deletedBy],
+    references: [users.id],
+  }),
   members: many(clientMembers),
   services: many(services),
   tasks: many(tasks),
   notes: many(notes),
   communications: many(communications),
+  documents: many(clientDocuments),
+  invoices: many(clientInvoices),
+}));
+
+export const clientDocumentsRelations = relations(clientDocuments, ({ one }) => ({
+  client: one(clients, {
+    fields: [clientDocuments.clientId],
+    references: [clients.id],
+  }),
+  service: one(services, {
+    fields: [clientDocuments.serviceId],
+    references: [services.id],
+  }),
+}));
+
+export const clientInvoicesRelations = relations(clientInvoices, ({ one }) => ({
+  client: one(clients, {
+    fields: [clientInvoices.clientId],
+    references: [clients.id],
+  }),
+  service: one(services, {
+    fields: [clientInvoices.serviceId],
+    references: [services.id],
+  }),
 }));
 
 export const clientMembersRelations = relations(clientMembers, ({ one }) => ({

@@ -191,6 +191,54 @@ export async function initDatabase() {
         is_management_only BOOLEAN NOT NULL DEFAULT false,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
       );
+
+      -- New features: soft delete, referral source, document management, invoicing, and service catalog
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS deleted_by UUID REFERENCES users(id) ON DELETE SET NULL;
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS referrer TEXT DEFAULT '';
+
+      ALTER TABLE service_history ADD COLUMN IF NOT EXISTS acts JSONB DEFAULT '[]'::jsonb;
+
+      CREATE TABLE IF NOT EXISTS client_documents (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'Other',
+        custom_type TEXT,
+        service_id UUID REFERENCES services(id) ON DELETE SET NULL,
+        note TEXT DEFAULT '',
+        file_name TEXT,
+        file_size BIGINT DEFAULT 0,
+        file_url TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS client_invoices (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        invoice_no TEXT NOT NULL,
+        service_id UUID REFERENCES services(id) ON DELETE SET NULL,
+        description TEXT DEFAULT '',
+        amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+        vat_applicable BOOLEAN NOT NULL DEFAULT true,
+        vat_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+        total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+        issued_date TEXT NOT NULL,
+        due_date TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'Draft',
+        note TEXT DEFAULT '',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS service_catalog (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL UNIQUE,
+        category TEXT DEFAULT 'Legal',
+        is_preset BOOLEAN DEFAULT false,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+      );
     `);
     console.log('✅ PostgreSQL schema verified/initialized.');
 

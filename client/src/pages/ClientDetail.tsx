@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { V, R, P, B, IB, Av, card, Pipe, G, MU, BD, STAT, fmt, ago, t12 } from '../components/Common';
+import { V, R, P, B, IB, Av, card, Pipe, G, MU, BD, STAT, fmt, ago, t12, aed, szF, refLabel } from '../components/Common';
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { Client, Service, Communication, Task } from '../types';
@@ -82,6 +82,14 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
             <I n="adduser" s={16} />Add People
           </B>
           <IB n="edit" onPress={() => onOpenModal('client', client)} />
+          {user?.role === 'management' && (
+            <IB
+              n="trash"
+              title="Delete client"
+              style={{ color: '#dc2626' }}
+              onPress={() => onOpenModal('deleteClient', { client })}
+            />
+          )}
         </V>
       </V>
 
@@ -530,7 +538,7 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
             ['Phone', client.phone],
             ['Email', client.email],
             ['Location', client.loc],
-            ['Source', client.source],
+            ['Referred by', refLabel(client)],
           ].map(([a, b]) => (
             <div key={a} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
               <span style={{ color: MU }}>{a}</span>
@@ -542,29 +550,239 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
 
       {/* TAB: Documents */}
       {tab === 'Documents' && (
-        <V style={card}>
-          <span style={{ color: MU, padding: '16px 0', textAlign: 'center' }}>No documents uploaded yet.</span>
+        <V style={{ gap: 10 }}>
+          <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <b>Documents ({client.documents?.length || 0})</b>
+            <B k={1} onPress={() => onOpenModal('doc', { clientId: client.id, services: client.services })}>
+              <I n="plus" s={16} />Add Document
+            </B>
+          </V>
+
+          {(client.documents || []).length > 0 ? (
+            <V style={{ gap: 8 }}>
+              {(client.documents || []).map((doc) => (
+                <div
+                  key={doc.id}
+                  style={{
+                    ...card,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '12px 14px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: '#e0f2fe',
+                        color: '#0369a1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <I n="file" s={20} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <b style={{ fontSize: 14, color: '#0f172a', display: 'block' }}>{doc.name}</b>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: '#0369a1',
+                            background: '#f0f9ff',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                          }}
+                        >
+                          {doc.type}
+                        </span>
+                        {doc.service && (
+                          <span style={{ fontSize: 11.5, color: MU }}>· {doc.service.name}</span>
+                        )}
+                        {doc.fileSize && (
+                          <span style={{ fontSize: 11.5, color: MU }}>· {szF(doc.fileSize)}</span>
+                        )}
+                      </div>
+                      {doc.note && (
+                        <span style={{ fontSize: 12, color: MU, marginTop: 4, display: 'block' }}>
+                          {doc.note}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    {doc.fileUrl && (
+                      <a
+                        href={doc.fileUrl}
+                        download={doc.fileName || doc.name}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
+                          background: '#f1f5f9',
+                          color: '#0f172a',
+                          textDecoration: 'none',
+                        }}
+                        title="Download file"
+                      >
+                        <I n="download" s={16} />
+                      </a>
+                    )}
+                    <IB
+                      n="edit"
+                      onPress={() => onOpenModal('doc', { clientId: client.id, doc, services: client.services })}
+                    />
+                  </div>
+                </div>
+              ))}
+            </V>
+          ) : (
+            <V style={{ ...card, padding: 24, alignItems: 'center', gap: 10, textAlign: 'center' }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  background: '#f1f5f9',
+                  color: MU,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <I n="file" s={22} />
+              </div>
+              <span style={{ color: MU, fontSize: 13 }}>No documents uploaded yet.</span>
+              <B k={1} onPress={() => onOpenModal('doc', { clientId: client.id, services: client.services })}>
+                <I n="plus" s={16} />Add first document
+              </B>
+            </V>
+          )}
         </V>
       )}
 
-      {/* TAB: Quotations */}
+      {/* TAB: Quotations & Invoices */}
       {tab === 'Quotations' && (
-        <V style={card}>
-          {services
-            .filter((s) => {
-              const curStage = (s.stagesConfig as any[]).find((st) => st.id === s.curStageId);
-              return curStage?.name?.toLowerCase().includes('proposal');
-            })
-            .map((s) => (
-              <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                <b>{s.name}</b>
-                <span style={{ color: '#8b5cf6', fontWeight: 600 }}>Proposal pending</span>
+        <V style={{ gap: 12 }}>
+          <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <b>Quotations & Invoices</b>
+            <B k={1} onPress={() => onOpenModal('invoice', { clientId: client.id, services: client.services, existingInvoiceCount: (client.invoices || []).length })}>
+              <I n="plus" s={16} />Create Invoice
+            </B>
+          </V>
+
+          {/* Financial summary KPI tiles */}
+          {(() => {
+            const invs = client.invoices || [];
+            const outstanding = invs.filter((i) => i.status !== 'Paid').reduce((sum, i) => sum + Number(i.totalAmount || 0), 0);
+            const paid = invs.filter((i) => i.status === 'Paid').reduce((sum, i) => sum + Number(i.totalAmount || 0), 0);
+
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ background: '#fef3c7', borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600 }}>Outstanding</span>
+                  <b style={{ fontSize: 17, color: '#92400e' }}>{aed(outstanding)}</b>
+                </div>
+                <div style={{ background: '#dcfce7', borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 12, color: '#166534', fontWeight: 600 }}>Paid</span>
+                  <b style={{ fontSize: 17, color: '#166534' }}>{aed(paid)}</b>
+                </div>
               </div>
-            ))}
-          {!services.some((s) => {
-            const curStage = (s.stagesConfig as any[]).find((st) => st.id === s.curStageId);
-            return curStage?.name?.toLowerCase().includes('proposal');
-          }) && <span style={{ color: MU, padding: '16px 0', textAlign: 'center' }}>No pending quotations.</span>}
+            );
+          })()}
+
+          {/* Pending Service Proposals */}
+          {services.some((s) => (s.stagesConfig as any[]).find((st) => st.id === s.curStageId)?.name?.toLowerCase().includes('proposal')) && (
+            <V style={{ ...card, gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase' }}>Pending Proposals</span>
+              {services
+                .filter((s) => {
+                  const curStage = (s.stagesConfig as any[]).find((st) => st.id === s.curStageId);
+                  return curStage?.name?.toLowerCase().includes('proposal');
+                })
+                .map((s) => (
+                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+                    <b>{s.name}</b>
+                    <span style={{ color: '#8b5cf6', fontWeight: 600, fontSize: 13 }}>Proposal pending</span>
+                  </div>
+                ))}
+            </V>
+          )}
+
+          {/* Invoices List */}
+          {(client.invoices || []).length > 0 ? (
+            <V style={{ gap: 8 }}>
+              {(client.invoices || []).map((inv) => {
+                const isPaid = inv.status === 'Paid';
+                const isOverdue = inv.status === 'Overdue';
+                const statusBg = isPaid ? '#dcfce7' : isOverdue ? '#fee2e2' : '#fef3c7';
+                const statusColor = isPaid ? '#15803d' : isOverdue ? '#b91c1c' : '#b45309';
+
+                return (
+                  <div
+                    key={inv.id}
+                    style={{
+                      ...card,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      padding: '12px 14px',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <b style={{ fontSize: 15, color: '#0f172a' }}>{inv.invoiceNo}</b>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            background: statusBg,
+                            color: statusColor,
+                          }}
+                        >
+                          {inv.status}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: 13, color: '#334155', marginTop: 2, display: 'block' }}>
+                        {inv.description || inv.service?.name || 'General Legal Fee'}
+                      </span>
+                      <span style={{ fontSize: 11.5, color: MU }}>
+                        Due: {fmt(inv.dueDate)} {inv.vatApplicable ? '· Includes 5% VAT' : ''}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <b style={{ fontSize: 16, color: '#0f172a' }}>{aed(inv.totalAmount)}</b>
+                      <IB
+                        n="edit"
+                        onPress={() => onOpenModal('invoice', { clientId: client.id, invoice: inv, services: client.services })}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </V>
+          ) : (
+            <V style={{ ...card, padding: 20, alignItems: 'center', gap: 8 }}>
+              <span style={{ color: MU, fontSize: 13 }}>No invoices generated for this client yet.</span>
+            </V>
+          )}
         </V>
       )}
 
@@ -586,16 +804,37 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
       {tab === 'Activity' && (
         <V style={card}>
           {services
-            .flatMap((s) => (s.history || []).map((x) => ({ ...x, sName: s.name })))
+            .flatMap((s) => (s.history || []).map((x) => ({ ...x, sName: s.name, serviceId: s.id })))
             .map((h, i) => (
-              <V key={i} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                <b>
-                  {h.sName} → {h.stageName}
-                </b>
-                <span style={{ fontSize: 12, color: MU }}>
-                  {h.atDate} · {h.byUser?.name || 'Team'} · {h.note || '—'}
-                </span>
-              </V>
+              <P
+                key={h.id || i}
+                onPress={() => onOpenModal('actlog', { historyItem: h, serviceName: h.sName, clientName: client.name })}
+                style={{
+                  padding: '10px 0',
+                  borderBottom: '1px solid #f1f5f9',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <b style={{ fontSize: 13.5, color: '#0f172a', display: 'block' }}>
+                    {h.sName} → {h.stageName}
+                  </b>
+                  <span style={{ fontSize: 12, color: MU }}>
+                    {h.atDate} · {h.byUser?.name || 'Team'} · {h.note || '—'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: MU }}>
+                  {h.acts && h.acts.length > 0 && (
+                    <span style={{ fontSize: 11, background: '#f1f5f9', padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>
+                      {h.acts.length}
+                    </span>
+                  )}
+                  <I n="arrow" s={14} />
+                </div>
+              </P>
             ))}
           {!services.some((s) => (s.history || []).length) && (
             <span style={{ color: MU, padding: '16px 0', textAlign: 'center' }}>No stage activity recorded yet.</span>

@@ -21,6 +21,11 @@ import { SettingsPage } from './pages/Settings';
 // Modals
 import { ClientForm, TaskForm, SvcForm, StageForm, DecideForm } from './components/Modals';
 import { PeopleModal, CustPipelineModal, NoteForm, CommunicationForm, EmpModal } from './components/Modals/extraModals';
+import { DocFormModal } from './components/Modals/DocFormModal';
+import { InvoiceFormModal } from './components/Modals/InvoiceFormModal';
+import { DeleteClientConfirmModal, DeletedClientProfileModal, PermanentDeleteConfirmModal } from './components/Modals/ClientDeleteModals';
+import { ActLogModal } from './components/Modals/ActLogModal';
+import { CredFormModal } from './components/Modals/CredFormModal';
 
 // Routing Helpers for Hash-based deep linking
 function parseHash(): { page: string; id?: string; params?: any } {
@@ -1678,6 +1683,86 @@ export const App: React.FC = () => {
             loadAllData();
             refreshUser();
           }}
+        />
+      )}
+
+      {/* Document Form Modal */}
+      {activeModal?.type === 'doc' && (
+        <DocFormModal
+          clientId={activeModal.data?.clientId}
+          doc={activeModal.data?.doc}
+          services={activeModal.data?.services || clients.find(c => c.id === activeModal.data?.clientId)?.services || []}
+          onClose={() => setActiveModal(null)}
+          onSuccess={loadAllData}
+        />
+      )}
+
+      {/* Invoice Form Modal */}
+      {activeModal?.type === 'invoice' && (
+        <InvoiceFormModal
+          clientId={activeModal.data?.clientId}
+          invoice={activeModal.data?.invoice}
+          services={activeModal.data?.services || clients.find(c => c.id === activeModal.data?.clientId)?.services || []}
+          existingInvoiceCount={activeModal.data?.existingInvoiceCount || 0}
+          onClose={() => setActiveModal(null)}
+          onSuccess={loadAllData}
+        />
+      )}
+
+      {/* Soft Delete Client Confirm Modal */}
+      {activeModal?.type === 'deleteClient' && (
+        <DeleteClientConfirmModal
+          client={activeModal.data?.client}
+          onClose={() => setActiveModal(null)}
+          onSuccess={() => {
+            loadAllData();
+            setNav({ page: 'clients' });
+          }}
+        />
+      )}
+
+      {/* Deleted Client Profile Preview Modal */}
+      {activeModal?.type === 'deletedClientProfile' && (
+        <DeletedClientProfileModal
+          client={activeModal.data?.client}
+          onClose={() => setActiveModal(null)}
+          onSuccess={loadAllData}
+          onTriggerPermanentDelete={(client) => setActiveModal({ type: 'permanentDelete', data: { client } })}
+        />
+      )}
+
+      {/* Permanent Delete Client Modal */}
+      {activeModal?.type === 'permanentDelete' && (
+        <PermanentDeleteConfirmModal
+          client={activeModal.data?.client}
+          onClose={() => setActiveModal(null)}
+          onSuccess={loadAllData}
+        />
+      )}
+
+      {/* Activity Details Modal */}
+      {activeModal?.type === 'actlog' && (
+        <ActLogModal
+          historyItem={activeModal.data?.historyItem}
+          serviceName={activeModal.data?.serviceName || 'Service'}
+          clientName={activeModal.data?.clientName || 'Client'}
+          tasks={tasks}
+          onClose={() => setActiveModal(null)}
+          onOpenTaskModal={(taskId) => {
+            const targetTask = tasks.find((t) => t.id === taskId);
+            if (targetTask) {
+              setActiveModal({ type: 'taskView', data: targetTask });
+            }
+          }}
+        />
+      )}
+
+      {/* Employee Credentials Modal */}
+      {activeModal?.type === 'cred' && (
+        <CredFormModal
+          member={activeModal.data?.member}
+          onClose={() => setActiveModal(null)}
+          onSuccess={loadAllData}
         />
       )}
 

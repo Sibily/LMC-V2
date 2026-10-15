@@ -53,6 +53,23 @@ export const ago = (d: string) => {
   return n <= 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`;
 };
 
+export const aed = (n: number | string) =>
+  'AED ' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export const szF = (b: number | string) => {
+  const bytes = Number(b) || 0;
+  return bytes > 1048576
+    ? (bytes / 1048576).toFixed(1) + ' MB'
+    : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+};
+
+export const refLabel = (k: { source?: string; referrer?: string }) => {
+  const s0 = k.source || '';
+  if (s0 === 'By advisor') return 'By advisor' + (k.referrer ? ' · ' + k.referrer : '');
+  if (s0 === 'Other') return k.referrer || 'Other';
+  return s0 || '—';
+};
+
 export const COL = ['#64748b', '#0ea5e9', '#8b5cf6', '#16a34a', '#14b8a6', '#f59e0b', '#ec4899', '#6366f1', '#22c55e', '#0891b2'];
 export const col = (i: number) => COL[i % COL.length];
 

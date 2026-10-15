@@ -19,6 +19,8 @@ import reportsRoutes from './routes/reports.js';
 import chatRoutes from './routes/chat.js';
 import notifsRoutes from './routes/notifs.js';
 import pipelinesRoutes from './routes/pipelines.js';
+import documentsRoutes from './routes/documents.js';
+import invoicesRoutes from './routes/invoices.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -47,6 +49,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/clients', clientsRoutes);
+app.use('/api/clients', documentsRoutes);
+app.use('/api/clients', invoicesRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/tasks', tasksRoutes);
 app.use('/api/notes', notesRoutes);

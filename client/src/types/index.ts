@@ -24,6 +24,17 @@ export interface PipelineStage {
   color?: string;
 }
 
+export interface ServiceActivityAct {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  who: string;
+  date?: string;
+  time?: string;
+  tid?: string;
+}
+
 export interface ServiceHistoryItem {
   id: string;
   serviceId: string;
@@ -37,6 +48,7 @@ export interface ServiceHistoryItem {
   assignedUser?: { id: string; name: string };
   followUpDate: string;
   followUpTime: string;
+  acts?: ServiceActivityAct[];
   createdAt?: string;
 }
 
@@ -63,6 +75,41 @@ export interface ClientMember {
   user?: { id: string; name: string; email?: string; avatarUrl?: string | null };
 }
 
+export interface ClientDocument {
+  id: string;
+  clientId: string;
+  name: string;
+  type: string;
+  customType?: string;
+  serviceId?: string | null;
+  service?: { id: string; name: string } | null;
+  note: string;
+  fileName?: string;
+  fileSize?: string | number;
+  fileUrl?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ClientInvoice {
+  id: string;
+  clientId: string;
+  invoiceNo: string;
+  serviceId?: string | null;
+  service?: { id: string; name: string } | null;
+  description: string;
+  amount: string | number;
+  vatApplicable: boolean;
+  vatAmount: string | number;
+  totalAmount: string | number;
+  issuedDate: string;
+  dueDate: string;
+  status: 'Draft' | 'Sent' | 'Paid' | 'Overdue';
+  note: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Client {
   id: string;
   type: 'Individual' | 'Company';
@@ -72,11 +119,17 @@ export interface Client {
   email: string;
   loc: string;
   source: string;
+  referrer?: string;
   status: 'Active Client' | 'Inactive Client' | 'On Hold' | 'Lost Client';
   ownerId?: string | null;
   owner?: { id: string; name: string; email: string; avatarUrl?: string | null } | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  deletedByUser?: { id: string; name: string; email?: string } | null;
   members?: ClientMember[];
   services?: Service[];
+  documents?: ClientDocument[];
+  invoices?: ClientInvoice[];
   createdAt?: string;
   updatedAt?: string;
 }

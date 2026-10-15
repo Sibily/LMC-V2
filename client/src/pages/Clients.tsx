@@ -3,6 +3,7 @@ import { V, R, P, B, inp, card, G, MU, BD, STAT, scol, EmptyState } from '../com
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { Client } from '../types';
+import { api } from '../api/client';
 
 interface ClientsProps {
   clients: Client[];
@@ -16,6 +17,14 @@ export const Clients: React.FC<ClientsProps> = ({ clients, team, onOpenClient, o
   const [q, setQ] = useState('');
   const [tab, setTab] = useState<'My Clients' | 'All Clients'>('All Clients');
   const [statusFilter, setStatusFilter] = useState('');
+  const [deletedClients, setDeletedClients] = useState<Client[]>([]);
+  const [deletedOpen, setDeletedOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (user?.role === 'management') {
+      api.clients.listDeleted().then(setDeletedClients).catch(() => {});
+    }
+  }, [user]);
 
   const filtered = clients.filter((k) => {
     const isMine = k.ownerId === user?.id || (k.members || []).some((m) => m.userId === user?.id);
@@ -162,6 +171,89 @@ export const Clients: React.FC<ClientsProps> = ({ clients, team, onOpenClient, o
           </P>
         );
       })}
+
+      {/* Recently Deleted Clients Accordion (Management Only) */}
+      {user?.role === 'management' && (
+        <V style={{ ...card, gap: 10, marginTop: 6 }}>
+          <P
+            onPress={() => setDeletedOpen(!deletedOpen)}
+            style={{
+              width: '100%',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              padding: 0,
+              background: 'transparent',
+              color: '#0f172a',
+            }}
+          >
+            <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <div style={{ color: '#dc2626' }}>
+                <I n="trash" s={18} />
+              </div>
+              <b style={{ fontSize: 14 }}>Recently deleted clients</b>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 20,
+                  background: '#f1f5f9',
+                  color: '#475569',
+                }}
+              >
+                {deletedClients.length}
+              </span>
+            </V>
+            <I n={deletedOpen ? 'up' : 'down'} s={16} />
+          </P>
+
+          {deletedOpen && (
+            <V style={{ gap: 8, paddingTop: 4 }}>
+              {deletedClients.length === 0 ? (
+                <span style={{ fontSize: 13, color: MU, padding: '8px 0' }}>No recently deleted clients.</span>
+              ) : (
+                deletedClients.map((k) => (
+                  <P
+                    key={k.id}
+                    onPress={() => onOpenModal('deletedClientProfile', { client: k })}
+                    style={{
+                      border: '1px solid #fee2e2',
+                      background: '#fff5f5',
+                      borderRadius: 12,
+                      padding: '10px 14px',
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <div>
+                      <b style={{ fontSize: 14, color: '#0f172a', display: 'block' }}>{k.name}</b>
+                      <span style={{ fontSize: 12, color: MU }}>
+                        {k.company || k.type} · Deleted {k.deletedAt ? k.deletedAt.slice(0, 10) : ''}
+                      </span>
+                    </div>
+                    <B
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        background: '#fff',
+                        borderColor: '#fca5a5',
+                        color: '#dc2626',
+                      }}
+                      onPress={() => onOpenModal('deletedClientProfile', { client: k })}
+                    >
+                      View & Restore
+                    </B>
+                  </P>
+                ))
+              )}
+            </V>
+          )}
+        </V>
+      )}
 
       {!filtered.length && (
         <EmptyState
