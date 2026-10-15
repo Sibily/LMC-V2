@@ -7,14 +7,16 @@
     "dev": "concurrently -n \"server,client\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
     "build": "npm run build:server && npm run build:client",
-    "build:server": "cd server && npm run build",
-    "build:client": "cd client && npm run build",
+    "build:server": "npm --prefix server run build",
+    "build:client": "npm --prefix client run build",
+    "start": "node server/dist/index.js",
     "db:start": "/usr/lib/postgresql/18/bin/pg_ctl -D ~/.local/share/buzzrdesk_pg -o \"-p 5433 -k /tmp\" -l ~/.local/share/buzzrdesk_pg/server.log start || true",
     "db:stop": "/usr/lib/postgresql/18/bin/pg_ctl -D ~/.local/share/buzzrdesk_pg stop || true",
-    "db:push": "cd server && npm run db:push",
-    "db:seed": "cd server && npm run db:seed",
-    "db:clean": "cd server && npm run db:clean"
+    "db:push": "npm --prefix server run db:push",
+    "db:seed": "npm --prefix server run db:seed",
+    "db:clean": "npm --prefix server run db:clean"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

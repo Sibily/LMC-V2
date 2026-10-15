@@ -55,6 +55,30 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/notifs', notifsRoutes);
 app.use('/api/pipelines', pipelinesRoutes);
 
+// Serve static client build if present (production deployment)
+const clientDistPath = path.resolve(process.cwd(), '../client/dist');
+const altClientDistPath = path.resolve(process.cwd(), 'client/dist');
+const resolvedDistPath = [clientDistPath, altClientDistPath].find(p => path.resolve(p));
+
+app.use(express.static(path.resolve(process.cwd(), '../client/dist')));
+app.use(express.static(path.resolve(process.cwd(), 'client/dist')));
+
+// Serve index.html for unknown non-API routes (SPA client routing)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/socket.io')) {
+    return next();
+  }
+  const rootIndex = path.resolve(process.cwd(), 'client/dist/index.html');
+  const parentIndex = path.resolve(process.cwd(), '../client/dist/index.html');
+  res.sendFile(rootIndex, (err) => {
+    if (err) {
+      res.sendFile(parentIndex, (err2) => {
+        if (err2) next();
+      });
+    }
+  });
+});
+
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Unhandled server error:', err);

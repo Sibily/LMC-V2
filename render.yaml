@@ -1,0 +1,52 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Buzzrdesk Web Service (Free Tier)
+  # Free Web Services on Render spin down after 15 minutes of inactivity.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: buzzrdesk-app
+    runtime: node
+    plan: free
+    region: oregon # or frankfurt, singapore, ohio
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: buzzrdesk-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false
+      - key: UPLOAD_DIR
+        value: ./uploads
+      # Optional Cloud Object Storage (S3 / Cloudflare R2 / Supabase Storage)
+      # Recommended for Render Free Plan because local disk storage is ephemeral
+      # - key: S3_ENDPOINT
+      #   sync: false
+      # - key: S3_REGION
+      #   value: auto
+      # - key: S3_BUCKET
+      #   sync: false
+      # - key: S3_ACCESS_KEY_ID
+      #   sync: false
+      # - key: S3_SECRET_ACCESS_KEY
+      #   sync: false
+      # - key: S3_PUBLIC_URL
+      #   sync: false
+
+databases:
+  # ---------------------------------------------------------------------------
+  # Buzzrdesk PostgreSQL Database (Render Free Tier)
+  # Note: Render Free PostgreSQL expires after 30 days. For long-term free tier,
+  # you can point DATABASE_URL to a free Neon (neon.tech) or Supabase instance.
+  # ---------------------------------------------------------------------------
+  - name: buzzrdesk-db
+    plan: free
+    databaseName: buzzrdesk
+    user: buzzrdesk_user
