@@ -458,16 +458,21 @@ export const StageForm: React.FC<{
   const si = stages.findIndex((x) => x.id === service.curStageId);
   const opts = stages.filter((x) => x.type !== 'decision');
   const nxt = opts.find((x) => stages.indexOf(x) > si) || opts[0];
+  const others = team.filter((u) => u.id !== user?.id);
 
   const [f, sf] = useState({
     stageId: service.curStageId,
     note: '',
-    next: '',
-    fd: add(1),
-    ft: '09:00',
-    assignUserId: user?.id,
-    other: false,
     keep: true,
+    sopen: true, // Opened by default so user immediately sees next action
+    sk: 'Task' as 'Reminder' | 'Task' | 'Note',
+    stx: '',
+    sbd: '',
+    sd: TODAY,
+    stm: new Date().toTimeString().slice(0, 5),
+    sother: false,
+    swho: [] as string[],
+    tried: false,
   });
 
   const chip = (on: boolean) => ({
@@ -480,25 +485,93 @@ export const StageForm: React.FC<{
     color: on ? G : MU,
   });
 
+  const okI = f.sk === 'Note' ? !!(f.sbd.trim() || f.stx.trim()) : !!f.stx.trim();
+
   const save = async () => {
+    // If next action is enabled and user selected someone else but didn't pick any colleague
+    if (f.sopen && f.sother && (!Array.isArray(f.swho) || !f.swho.length) && okI) {
+      toast('Select at least one colleague to assign');
+      return;
+    }
+
     try {
       const selectedStage = stages.find((x) => x.id === (f.keep ? service.curStageId : f.stageId));
+      const stageName = selectedStage?.name || 'Stage updated';
+
+      // Build acts / next action items if provided
+      let acts: any[] = [];
+      let nextActionTitle = '';
+      let followUpDate = '';
+      let followUpTime = '';
+
+      if (f.sopen && okI) {
+        const recipients = f.sother && f.swho.length ? f.swho : [user?.id || ''];
+        nextActionTitle = f.stx.trim();
+        followUpDate = f.sd;
+        followUpTime = f.stm;
+
+        // Create tasks/reminders for each recipient
+        for (const recipientId of recipients) {
+          const recipientUser = team.find((u) => u.id === recipientId);
+          const recipientName = recipientUser?.name || user?.name || 'Team';
+
+          if (f.sk === 'Note') {
+            await api.notes.create({
+              title: f.stx.trim() || 'Stage Note',
+              body: f.sbd.trim() || f.stx.trim(),
+              clientId: client.id,
+            });
+            acts.push({
+              id: 'act-note-' + Date.now(),
+              kind: 'Note',
+              title: f.stx.trim() || 'Note',
+              body: f.sbd.trim(),
+              who: recipientName,
+              date: f.sd,
+              time: f.stm,
+            });
+          } else {
+            const createdTask: any = await api.tasks.create({
+              title: f.stx.trim(),
+              desc: f.note || '',
+              date: f.sd || TODAY,
+              time: f.stm || '09:00',
+              whoUserId: recipientId,
+              clientId: client.id,
+              serviceId: service.id,
+              type: f.sk,
+            });
+            acts.push({
+              id: 'act-task-' + createdTask.id,
+              kind: f.sk,
+              title: f.stx.trim(),
+              body: f.note,
+              who: recipientName,
+              tid: createdTask.id,
+              date: f.sd,
+              time: f.stm,
+            });
+          }
+        }
+      }
+
       await api.services.updateStage(service.id, {
         stageId: f.stageId,
-        stageName: selectedStage?.name || 'Stage updated',
+        stageName,
         note: f.note,
-        nextAction: f.next,
-        followUpDate: f.next ? f.fd : '',
-        followUpTime: f.next ? f.ft : '',
-        assignUserId: f.other ? f.assignUserId : user?.id,
+        nextAction: nextActionTitle,
+        followUpDate,
+        followUpTime,
+        assignUserId: f.sother && f.swho.length ? f.swho[0] : user?.id,
         keepCurrent: f.keep,
+        acts,
       });
 
       if (!f.keep && selectedStage && (selectedStage.id === stages[stages.length - 1].id || /deliver|complet/i.test(selectedStage.name))) {
         celebrate('Congratulations!', `${service.name} for ${client.name} has progressed. Great work!`);
       }
 
-      toast('Saved · logged in Done tasks' + (f.next ? ' + reminder added' : ''));
+      toast('Saved · stage update logged' + (acts.length ? ` · ${acts.length} item(s) assigned` : ''));
       onSaved();
       onClose();
     } catch (e: any) {
@@ -514,10 +587,18 @@ export const StageForm: React.FC<{
         <V style={{ gap: 6 }}>
           <span style={{ fontSize: 12, color: MU, fontWeight: 600 }}>What happened?</span>
           <V style={{ flexDirection: 'row', gap: 8 }}>
-            <B k={f.keep} style={{ flex: 1, whiteSpace: 'normal', textAlign: 'center' }} onPress={() => sf({ ...f, keep: true, stageId: service.curStageId })}>
+            <B
+              k={f.keep}
+              style={{ flex: 1, whiteSpace: 'normal', textAlign: 'center', fontSize: 12, padding: '8px 6px', gap: 5, lineHeight: 1.2 }}
+              onPress={() => sf({ ...f, keep: true, stageId: service.curStageId })}
+            >
               <I n="tick" s={16} />Stay at {curStageName}
             </B>
-            <B k={!f.keep} style={{ flex: 1 }} onPress={() => sf({ ...f, keep: false, stageId: nxt?.id || f.stageId })}>
+            <B
+              k={!f.keep}
+              style={{ flex: 1, whiteSpace: 'normal', textAlign: 'center', fontSize: 12, padding: '8px 6px', gap: 5, lineHeight: 1.2 }}
+              onPress={() => sf({ ...f, keep: false, stageId: nxt?.id || f.stageId })}
+            >
               <I n="arrow" s={16} />Move to…
             </B>
           </V>
@@ -535,36 +616,152 @@ export const StageForm: React.FC<{
         <F l="Note">
           <textarea
             rows={2}
-            placeholder="e.g. Client requested document update"
+            placeholder="e.g. Client requested document update, awaiting signature"
             style={inp}
             value={f.note}
             onChange={(e) => sf({ ...f, note: e.target.value })}
           />
         </F>
-        <F l="Next action (adds a reminder)">
-          <input placeholder="e.g. Call again" style={inp} value={f.next} onChange={(e) => sf({ ...f, next: e.target.value })} />
-        </F>
-        {f.next && (
-          <V style={{ gap: 8 }}>
-            <span style={{ fontSize: 12, color: MU, fontWeight: 600 }}>Remind me</span>
-            <V style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-              {[
-                ['Today', 0],
-                ['Tomorrow', 1],
-                ['3 days', 3],
-                ['1 week', 7],
-              ].map(([l, n]) => (
-                <P key={l} onPress={() => sf({ ...f, fd: add(n as number) })} style={chip(f.fd === add(n as number))}>
-                  {l}
-                </P>
-              ))}
+
+        {/* Next Action Box */}
+        <V style={{ gap: 8, padding: 12, borderRadius: 14, border: '1px solid ' + BD, background: '#f8fafc' }}>
+          <P
+            onPress={() => sf({ ...f, sopen: !f.sopen })}
+            style={{ ...R, justifyContent: 'space-between', gap: 8 }}
+          >
+            <b style={{ fontSize: 13, color: '#0f172a' }}>Next action (optional)</b>
+            <span style={{ color: G, fontWeight: 700, fontSize: 13 }}>{f.sopen ? 'Hide ▴' : 'Open ▾'}</span>
+          </P>
+
+          {f.sopen && (
+            <V style={{ gap: 8, marginTop: 4 }}>
+              <span style={{ fontSize: 12, color: MU }}>
+                Create a reminder, task or note. Assign it to yourself or a colleague; assignments are added to their list, notifications and this client activity log.
+              </span>
+
+              {/* Type Switcher */}
+              <V style={{ flexDirection: 'row', gap: 6 }}>
+                {(['Reminder', 'Task', 'Note'] as const).map((k) => (
+                  <P
+                    key={k}
+                    onPress={() => sf({ ...f, sk: k })}
+                    style={{
+                      ...chip(f.sk === k),
+                      ...R,
+                      gap: 6,
+                      flex: 1,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <I n={k === 'Reminder' ? 'bell' : k === 'Task' ? 'task' : 'note'} s={14} />
+                    {k}
+                  </P>
+                ))}
+              </V>
+
+              {/* Title / Description */}
+              <input
+                style={inp}
+                placeholder={f.sk === 'Note' ? 'Note title (optional)' : f.sk === 'Task' ? 'e.g. Prepare the proposal' : 'e.g. Call the client again'}
+                value={f.stx}
+                onChange={(e) => sf({ ...f, stx: e.target.value })}
+              />
+
+              {f.sk === 'Note' && (
+                <textarea
+                  rows={3}
+                  placeholder="Write the note…"
+                  style={{ ...inp, minHeight: 70 }}
+                  value={f.sbd}
+                  onChange={(e) => sf({ ...f, sbd: e.target.value })}
+                />
+              )}
+
+              {/* Date & Time quick chips (for Reminder & Task) */}
+              {f.sk !== 'Note' && (
+                <V style={{ gap: 8 }}>
+                  <V style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    {[
+                      ['Today', 0],
+                      ['Tomorrow', 1],
+                      ['3 days', 3],
+                      ['1 week', 7],
+                    ].map(([l, n]) => (
+                      <P
+                        key={l}
+                        onPress={() => sf({ ...f, sd: add(n as number) })}
+                        style={chip(f.sd === add(n as number))}
+                      >
+                        {l}
+                      </P>
+                    ))}
+                  </V>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <input type="date" style={inp} value={f.sd} onChange={(e) => sf({ ...f, sd: e.target.value })} />
+                    <input type="time" style={inp} value={f.stm} onChange={(e) => sf({ ...f, stm: e.target.value })} />
+                  </div>
+                </V>
+              )}
+
+              {/* Assignee selection */}
+              <span style={{ fontSize: 12, color: MU, fontWeight: 600 }}>Send to</span>
+              <V style={{ flexDirection: 'row', gap: 8 }}>
+                <B
+                  k={!f.sother}
+                  style={{ flex: 1 }}
+                  onPress={() => sf({ ...f, sother: false, swho: [] })}
+                >
+                  <I n="user" s={16} />Myself
+                </B>
+                <B
+                  k={f.sother}
+                  style={{ flex: 1 }}
+                  onPress={() => sf({ ...f, sother: true, swho: f.swho.length ? f.swho : [others[0]?.id].filter(Boolean) as string[] })}
+                >
+                  <I n="users" s={16} />Someone else
+                </B>
+              </V>
+
+              {f.sother && (
+                <V style={{ gap: 6 }}>
+                  <span style={{ fontSize: 12, color: MU }}>Select one or more colleagues</span>
+                  <V style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    {others.map((u) => {
+                      const picked = f.swho.includes(u.id);
+                      return (
+                        <P
+                          key={u.id}
+                          onPress={() =>
+                            sf({
+                              ...f,
+                              swho: picked ? f.swho.filter((x) => x !== u.id) : [...f.swho, u.id],
+                            })
+                          }
+                          style={{
+                            ...R,
+                            gap: 6,
+                            padding: '5px 12px 5px 6px',
+                            borderRadius: 20,
+                            fontWeight: 600,
+                            fontSize: 13,
+                            border: '1px solid ' + (picked ? G : BD),
+                            background: picked ? '#f0fdf4' : '#fff',
+                            color: picked ? G : MU,
+                          }}
+                        >
+                          <Av n={u.name} s={22} url={u.avatarUrl} />
+                          {u.name}
+                          {picked && <I n="tick" s={13} />}
+                        </P>
+                      );
+                    })}
+                  </V>
+                </V>
+              )}
             </V>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <input type="date" style={inp} value={f.fd} onChange={(e) => sf({ ...f, fd: e.target.value })} />
-              <input type="time" style={inp} value={f.ft} onChange={(e) => sf({ ...f, ft: e.target.value })} />
-            </div>
-          </V>
-        )}
+          )}
+        </V>
+
         <span style={{ fontSize: 12, color: MU }}>Saving logs this update in your Done tasks automatically.</span>
         <B k={1} onPress={save}>
           Save Update
