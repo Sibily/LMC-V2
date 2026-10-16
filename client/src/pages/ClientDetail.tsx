@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { V, R, P, B, IB, Av, card, Pipe, G, MU, BD, STAT, fmt, ago, t12, aed, szF, refLabel, scol, TODAY } from '../components/Common';
+import { V, R, P, B, IB, Av, card, Pipe, G, MU, BD, STAT, fmt, ago, t12, aed, szF, refLabel, scol, TODAY, Modal } from '../components/Common';
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { Client, Service, Communication, Task } from '../types';
@@ -29,6 +29,7 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [isWide, setIsWide] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 900 : true));
+  const [previewDoc, setPreviewDoc] = useState<{ name: string; fileUrl: string; fileName?: string } | null>(null);
 
   useEffect(() => {
     const handleResize = () => setIsWide(window.innerWidth >= 900);
@@ -793,7 +794,7 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
                       style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid ' + BD }}
                       onPress={() => {
                         if (doc.fileUrl) {
-                          window.open(doc.fileUrl, '_blank');
+                          setPreviewDoc({ name: doc.name, fileUrl: doc.fileUrl, fileName: doc.fileName });
                         } else {
                           onOpenModal('doc', { clientId: client.id, doc, services: client.services });
                         }
@@ -1154,6 +1155,68 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
             });
           })()}
         </V>
+      )}
+
+      {/* Document In-App Preview Modal */}
+      {previewDoc && (
+        <Modal title={previewDoc.name} close={() => setPreviewDoc(null)} wide={true}>
+          <V style={{ gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+              <span style={{ fontSize: 13, color: MU }}>{previewDoc.fileName || previewDoc.name}</span>
+              <a
+                href={previewDoc.fileUrl}
+                download={previewDoc.fileName || previewDoc.name}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 14px',
+                  borderRadius: 10,
+                  background: '#f0fdf4',
+                  color: '#15803d',
+                  border: '1px solid ' + BD,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                }}
+              >
+                <I n="download" s={15} />
+                Download
+              </a>
+            </div>
+
+            <div
+              style={{
+                width: '100%',
+                height: '70vh',
+                maxHeight: 650,
+                borderRadius: 12,
+                border: '1px solid ' + BD,
+                overflow: 'hidden',
+                background: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {previewDoc.fileUrl.startsWith('data:image/') ? (
+                <img
+                  src={previewDoc.fileUrl}
+                  alt={previewDoc.name}
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                />
+              ) : (
+                <iframe
+                  src={previewDoc.fileUrl}
+                  title={previewDoc.name}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                />
+              )}
+            </div>
+          </V>
+        </Modal>
       )}
     </V>
   );
