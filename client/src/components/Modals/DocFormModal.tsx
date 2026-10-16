@@ -220,10 +220,34 @@ export const DocFormModal: React.FC<DocFormModalProps> = ({
           />
         </F>
 
-        <B k={1} onPress={handleSave} style={{ marginTop: 6, opacity: loading ? 0.6 : 1 }}>
-          <I n={doc ? 'edit' : 'upload'} s={16} />
-          {loading ? 'Saving...' : doc ? 'Save Changes' : 'Upload Document'}
-        </B>
+        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+          {doc && (
+            <B
+              onPress={async () => {
+                if (window.confirm(`Delete document "${doc.name}"?`)) {
+                  setLoading(true);
+                  try {
+                    await api.clients.deleteDoc(clientId, doc.id);
+                    toast('Document deleted');
+                    onSuccess();
+                    onClose();
+                  } catch (e: any) {
+                    toast(e.message || 'Failed to delete document');
+                  } finally {
+                    setLoading(false);
+                  }
+                }
+              }}
+              style={{ color: '#dc2626', borderColor: '#fecaca', flex: '0 0 auto' }}
+            >
+              <I n="trash" s={16} />Delete
+            </B>
+          )}
+          <B k={1} onPress={handleSave} style={{ flex: 1, opacity: loading ? 0.6 : 1 }}>
+            <I n={doc ? 'edit' : 'upload'} s={16} />
+            {loading ? 'Saving...' : doc ? 'Save Changes' : 'Upload Document'}
+          </B>
+        </div>
       </V>
     </Modal>
   );
