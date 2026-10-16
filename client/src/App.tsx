@@ -20,7 +20,7 @@ import { SettingsPage } from './pages/Settings';
 
 // Modals
 import { ClientForm, TaskForm, SvcForm, StageForm, DecideForm } from './components/Modals';
-import { PeopleModal, CustPipelineModal, NoteForm, CommunicationForm, EmpModal } from './components/Modals/extraModals';
+import { PeopleModal, CustPipelineModal, NoteForm, CommunicationForm, EmpModal, MenuModal, PipelineOverviewModal } from './components/Modals/extraModals';
 import { DocFormModal } from './components/Modals/DocFormModal';
 import { InvoiceFormModal } from './components/Modals/InvoiceFormModal';
 import { DeleteClientConfirmModal, DeletedClientProfileModal, PermanentDeleteConfirmModal } from './components/Modals/ClientDeleteModals';
@@ -1855,6 +1855,23 @@ export const App: React.FC = () => {
           isDefault={activeModal.data?.isDefault}
           onClose={() => setActiveModal(null)}
           onSaved={loadAllData}
+        />
+      )}
+
+      {activeModal?.type === 'menu' && (
+        <MenuModal
+          title={activeModal.data?.title || 'Actions'}
+          items={activeModal.data?.items || []}
+          onClose={() => setActiveModal(null)}
+        />
+      )}
+
+      {activeModal?.type === 'pipe' && (
+        <PipelineOverviewModal
+          client={activeModal.data?.client}
+          service={activeModal.data?.service}
+          onClose={() => setActiveModal(null)}
+          onOpenModal={(t, d) => setActiveModal({ type: t, data: d })}
         />
       )}
 

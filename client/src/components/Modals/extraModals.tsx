@@ -860,3 +860,85 @@ export const EmpModal: React.FC<{
     </Modal>
   );
 };
+
+// Generic Menu Modal (matching prototype function Menu({c, m}))
+export const MenuModal: React.FC<{
+  title: string;
+  items: [string, () => void, string][];
+  onClose: () => void;
+}> = ({ title, items, onClose }) => {
+  return (
+    <Modal title={title} close={onClose}>
+      <V style={{ gap: 6 }}>
+        {items.map(([l, fn, ic]) => (
+          <P
+            key={l}
+            onPress={() => {
+              onClose();
+              fn();
+            }}
+            style={{
+              ...R,
+              gap: 12,
+              padding: '12px 8px',
+              borderRadius: 10,
+              fontWeight: 600,
+              cursor: 'pointer',
+              color: l.toLowerCase().includes('delete') ? '#dc2626' : '#0f172a',
+            }}
+          >
+            <I n={ic} s={20} />
+            {l}
+          </P>
+        ))}
+      </V>
+    </Modal>
+  );
+};
+
+// Prototype Pipeline Overview Modal (matching prototype function Pipeline({c, m}))
+export const PipelineOverviewModal: React.FC<{
+  client: any;
+  service: any;
+  onClose: () => void;
+  onOpenModal: (type: string, data?: any) => void;
+}> = ({ client, service, onClose, onOpenModal }) => {
+  if (!service) return null;
+  const stages = (service.stagesConfig as any[]) || [];
+  const curStage = stages.find((st: any) => st.id === service.curStageId);
+  const curStageName = curStage?.name || 'Enquiry';
+
+  return (
+    <Modal wide title={service.name} close={onClose}>
+      <V style={{ gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
+          {[
+            ['Client', client.name],
+            ['Current Stage', curStageName],
+            ['Responsible', service.responsibleUser?.name || 'Unassigned'],
+            ['Next Action', service.nextAction || '—'],
+            ['Last Update', service.updDate || '—'],
+          ].map(([a, b]) => (
+            <V key={a}>
+              <span style={{ fontSize: 11, color: MU }}>{a}</span>
+              <b>{b}</b>
+            </V>
+          ))}
+        </div>
+
+        <B
+          k={1}
+          onPress={() => {
+            onClose();
+            onOpenModal('stage', { client, service });
+          }}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          <I n="edit" s={16} />Update Stage
+        </B>
+      </V>
+    </Modal>
+  );
+};
+
+

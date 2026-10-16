@@ -607,35 +607,73 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
             </V>
           </V>
 
-          {services.map((s) => (
-            <V key={s.id} style={{ ...card, gap: 8 }}>
-              <V style={{ flexDirection: 'row', justifyContent: 'space-between', ...R }}>
-                <b>{s.name}</b>
-                <V style={{ flexDirection: 'row', gap: 4 }}>
-                  <B onPress={() => onOpenModal('custPipeline', { service: s })}>
-                    <I n="cog" s={16} />Customize
-                  </B>
-                  <B k={1} onPress={() => onOpenModal('stage', { client, service: s })}>
-                    <I n="edit" s={16} />Update
-                  </B>
+          {services.map((s) => {
+            const stages = (s.stagesConfig as any[]) || [];
+            const curStage = stages.find((st: any) => st.id === s.curStageId);
+            const curStageName = curStage?.name || 'Enquiry';
+
+            const handleDeleteService = async () => {
+              if (window.confirm(`Delete service "${s.name}"? This cannot be undone.`)) {
+                try {
+                  await api.services.delete(s.id);
+                  toast('Service deleted');
+                  onRefreshClient();
+                } catch (e: any) {
+                  toast(e.message || 'Error deleting service');
+                }
+              }
+            };
+
+            const openServiceMenu = () => {
+              onOpenModal('menu', {
+                title: s.name,
+                items: [
+                  ['Update stage', () => onOpenModal('stage', { client, service: s }), 'task'],
+                  ['Customize pipeline', () => onOpenModal('custPipeline', { service: s }), 'cog'],
+                  ['Edit service', () => onOpenModal('svc', { clientId: client.id, service: s }), 'edit'],
+                  ['Delete service', handleDeleteService, 'trash'],
+                ],
+              });
+            };
+
+            return (
+              <V key={s.id} style={{ ...card, gap: 6 }}>
+                <V style={{ flexDirection: 'row', justifyContent: 'space-between', ...R }}>
+                  <b>{s.name}</b>
+                  <V style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <IB
+                      n="eye"
+                      title="View pipeline"
+                      onPress={() => onOpenModal('pipe', { client, service: s })}
+                    />
+                    <IB
+                      n="more"
+                      title="More actions"
+                      onPress={openServiceMenu}
+                    />
+                  </V>
                 </V>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6, fontSize: 12 }}>
+                  <V>
+                    <span style={{ color: MU }}>Current Stage</span>
+                    <b>{curStageName}</b>
+                  </V>
+                  <V>
+                    <span style={{ color: MU }}>Last Update</span>
+                    <b>{s.updDate ? fmt(s.updDate) : '—'}</b>
+                  </V>
+                  <V>
+                    <span style={{ color: MU }}>Responsible</span>
+                    <b>{s.responsibleUser?.name || 'Unassigned'}</b>
+                  </V>
+                  <V>
+                    <span style={{ color: MU }}>Next Action</span>
+                    <b>{s.nextAction || '—'}</b>
+                  </V>
+                </div>
               </V>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6, fontSize: 12 }}>
-                <V>
-                  <span style={{ color: MU }}>Responsible</span>
-                  <b>{s.responsibleUser?.name || 'Unassigned'}</b>
-                </V>
-                <V>
-                  <span style={{ color: MU }}>Next Action</span>
-                  <b>{s.nextAction || '—'}</b>
-                </V>
-                <V>
-                  <span style={{ color: MU }}>Last Update</span>
-                  <b>{s.updDate ? fmt(s.updDate) : '—'}</b>
-                </V>
-              </div>
-            </V>
-          ))}
+            );
+          })}
         </V>
       )}
 
