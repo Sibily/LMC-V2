@@ -69,30 +69,34 @@ export const I: React.FC<{ n: string; s?: number; style?: React.CSSProperties }>
   </svg>
 );
 
-export const LogoMark: React.FC<{ s?: number }> = ({ s = 32 }) => (
-  <svg width={s} height={s} viewBox="22 22 58 58" style={{ flexShrink: 0, display: 'block' }}>
-    <g fill="none" stroke="#1fcb66" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M72.3 50V44C72.3 34 65 29 55 29H46C35 29 29.5 36 29.5 45C29.5 52 32 53 31 60L28 69.5L39 64C41 63 42 62.7 44 62.7H51.5" />
-      <path d="M38.7 49.5C39 42.5 46.5 42.5 46.8 49.5M53.7 49.5C54 42.5 61.5 42.5 61.8 49.5" />
-    </g>
-    <path d="M68.5 54.5L57.5 63.7L63 66.2L60.4 74.2L70.6 65.8L65.2 63.6Z" fill="#1fcb66" />
-  </svg>
+export const LogoMark: React.FC<{ s?: number; style?: React.CSSProperties }> = ({ s = 32, style }) => (
+  <img
+    src="/logo.png"
+    alt="Logo"
+    style={{
+      height: s,
+      width: 'auto',
+      maxWidth: '100%',
+      objectFit: 'contain',
+      display: 'block',
+      flexShrink: 0,
+      ...style,
+    }}
+  />
 );
 
-export const Logo: React.FC<{ s?: number }> = ({ s = 32 }) => (
-  <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-    <LogoMark s={s} />
-    <b
-      style={{
-        fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
-        fontWeight: 800,
-        fontSize: Math.round(s * 0.66),
-        letterSpacing: -0.8,
-        color: '#0b1b16',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      buzzrdesk
-    </b>
-  </div>
+export const Logo: React.FC<{ s?: number; style?: React.CSSProperties }> = ({ s = 32, style }) => (
+  <img
+    src="/logo.png"
+    alt="Legal Maxims"
+    style={{
+      height: s,
+      width: 'auto',
+      maxWidth: '100%',
+      objectFit: 'contain',
+      display: 'block',
+      flexShrink: 0,
+      ...style,
+    }}
+  />
 );
