@@ -234,9 +234,9 @@ export const Home: React.FC<HomeProps> = ({
       </V>
 
       {/* Quick Action Circles */}
-      <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: '2px 0 0', width: '100%' }}>
+      <V style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: 16, padding: '2px 0 0', flexWrap: 'wrap' }}>
         {quickActions.map(({ label, icon, color, action }) => (
-          <P key={label} onPress={action} style={{ flexDirection: 'column', alignItems: 'center', gap: 5, position: 'relative', flex: 1, minWidth: 0 }}>
+          <P key={label} onPress={action} style={{ flexDirection: 'column', alignItems: 'center', gap: 5, position: 'relative', width: 52, flexShrink: 0 }}>
             <div style={{ width: 50, height: 50, borderRadius: 25, padding: 2.5, border: '2px dashed ' + color, display: 'flex' }}>
               <div
                 style={{
@@ -256,8 +256,8 @@ export const Home: React.FC<HomeProps> = ({
             <span
               style={{
                 position: 'absolute',
-                right: 'calc(50% - 25px)',
-                top: 38,
+                right: 2,
+                top: 36,
                 width: 16,
                 height: 16,
                 borderRadius: 8,
@@ -271,7 +271,7 @@ export const Home: React.FC<HomeProps> = ({
             >
               <I n="plus" s={10} />
             </span>
-            <span style={{ fontSize: 11.5, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap', width: '100%' }}>
               {label}
             </span>
           </P>
