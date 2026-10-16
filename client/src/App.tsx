@@ -2194,17 +2194,22 @@ const TaskViewModal: React.FC<{ task: Task; onClose: () => void; onSaved: () => 
   onClose,
   onSaved,
 }) => {
-  const { toast } = useAuth();
+  const { user, toast } = useAuth();
   const [note, setNote] = useState(task.doneNote || '');
+  const isAssignee = user && task.whoUserId === user.id;
 
   const handleToggle = async () => {
+    if (!isAssignee) {
+      toast(`Only ${task.whoUser?.name || 'the assigned user'} can complete this task.`);
+      return;
+    }
     try {
       await api.tasks.toggle(task.id, note);
       toast(task.done ? 'Task reopened' : 'Task marked done');
       onSaved();
       onClose();
     } catch (e: any) {
-      toast('Failed to update task');
+      toast(e.message || 'Failed to update task');
     }
   };
 
@@ -2235,6 +2240,14 @@ const TaskViewModal: React.FC<{ task: Task; onClose: () => void; onSaved: () => 
           <div>
             <span style={{ color: MU }}>Status:</span> <b>{task.done ? 'Completed' : 'To do'}</b>
           </div>
+          <div style={{ gridColumn: 'span 2' }}>
+            <span style={{ color: MU }}>Assigned to:</span> <b>{task.whoUser?.name || 'Unassigned'}</b>
+            {!isAssignee && (
+              <span style={{ display: 'block', fontSize: 11, color: '#b91c1c', marginTop: 2 }}>
+                (Only {task.whoUser?.name || 'assignee'} can mark this task as completed)
+              </span>
+            )}
+          </div>
           {task.client?.name && (
             <div style={{ gridColumn: 'span 2' }}>
               <span style={{ color: MU }}>Client:</span> <b>{task.client.name}</b>
@@ -2254,24 +2267,47 @@ const TaskViewModal: React.FC<{ task: Task; onClose: () => void; onSaved: () => 
           </div>
         )}
 
-        <F l={task.done ? 'Completion Note' : 'Add Note'}>
-          <textarea
-            rows={2}
-            style={inp}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="What happened?"
-          />
-        </F>
+        {isAssignee && (
+          <F l={task.done ? 'Completion Note' : 'Add Note'}>
+            <textarea
+              rows={2}
+              style={inp}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="What happened?"
+            />
+          </F>
+        )}
 
         <V style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
           <B onPress={handleDelete} style={{ color: '#dc2626', borderColor: '#fecaca' }}>
             <I n="trash" s={16} />Delete
           </B>
-          <B k={1} style={{ flex: 1 }} onPress={handleToggle}>
-            <I n="tick" s={16} />
-            {task.done ? 'Reopen' : 'Mark Complete'}
-          </B>
+          {isAssignee ? (
+            <B k={1} style={{ flex: 1 }} onPress={handleToggle}>
+              <I n="tick" s={16} />
+              {task.done ? 'Reopen' : 'Mark Complete'}
+            </B>
+          ) : (
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '10px 14px',
+                borderRadius: 12,
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: '#64748b',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                textAlign: 'center',
+              }}
+            >
+              Assigned to {task.whoUser?.name || 'another member'}
+            </div>
+          )}
         </V>
       </V>
     </Modal>

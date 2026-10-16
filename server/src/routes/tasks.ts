@@ -147,6 +147,11 @@ router.post('/:id/toggle', authMiddleware, async (req: AuthRequest, res) => {
     const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
     if (!task) return res.status(404).json({ error: 'Task not found' });
 
+    // Only the user assigned to the task can mark it as finished/reopen it (not even management)
+    if (task.whoUserId !== user.id) {
+      return res.status(403).json({ error: 'Only the assigned user can mark this task as completed.' });
+    }
+
     const newDone = !task.done;
     const today = new Date().toISOString().slice(0, 10);
     const timeNow = new Date().toTimeString().slice(0, 5);

@@ -66,12 +66,16 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
   };
 
   const togRem = async (t: Task) => {
+    if (t.whoUserId !== user?.id) {
+      toast(`Only ${t.whoUser?.name || 'the assigned user'} can complete this reminder`);
+      return;
+    }
     try {
       await api.tasks.toggle(t.id);
       onRefreshClient();
       toast(t.done ? 'Reopened' : (t.type === 'Reminder' ? 'Reminder done · see Completed' : 'Done'));
     } catch (e: any) {
-      toast('Failed to update reminder');
+      toast(e.message || 'Failed to update reminder');
     }
   };
 
@@ -80,20 +84,24 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
 
   const remRow = (t: Task) => {
     const late = !t.done && (t.date < todayStr || (t.date === todayStr && t.time < nowHM));
+    const isAssignee = t.whoUserId === user?.id;
     return (
       <V key={t.id} style={{ ...R, flexDirection: 'row', gap: 12, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
         <P
           onPress={() => togRem(t)}
+          title={isAssignee ? (t.done ? 'Mark incomplete' : 'Mark complete') : `Assigned to ${t.whoUser?.name || 'another member'}`}
           style={{
             width: 22,
             height: 22,
             borderRadius: 11,
-            border: '2px solid ' + (t.done ? G : late ? '#fca5a5' : '#cbd5e1'),
-            background: t.done ? G : '#fff',
+            border: '2px solid ' + (t.done ? G : late ? '#fca5a5' : isAssignee ? '#cbd5e1' : '#e2e8f0'),
+            background: t.done ? G : isAssignee ? '#fff' : '#f8fafc',
             color: '#fff',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
+            cursor: isAssignee ? 'pointer' : 'not-allowed',
+            opacity: !isAssignee && !t.done ? 0.6 : 1,
           }}
         >
           {t.done && <I n="tick" s={15} />}

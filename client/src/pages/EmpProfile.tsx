@@ -97,12 +97,16 @@ export const EmpProfilePage: React.FC<EmpProfilePageProps> = ({
   );
 
   const toggleTask = async (task: Task) => {
+    if (task.whoUserId !== currentUser?.id) {
+      toast(`Only ${task.whoUser?.name || 'the assigned user'} can complete this task`);
+      return;
+    }
     try {
       await api.tasks.toggle(task.id);
       toast(task.done ? 'Task reopened' : 'Task completed');
       if (onRefreshTasks) onRefreshTasks();
     } catch (e: any) {
-      toast('Failed to update task');
+      toast(e.message || 'Failed to update task');
     }
   };
 

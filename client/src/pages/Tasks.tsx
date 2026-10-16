@@ -48,12 +48,16 @@ export const TasksPage: React.FC<{
   });
 
   const toggleTask = async (task: Task) => {
+    if (task.whoUserId !== user?.id) {
+      toast(`Only ${task.whoUser?.name || 'the assigned user'} can complete this task`);
+      return;
+    }
     try {
       await api.tasks.toggle(task.id);
       toast(task.done ? 'Task reopened' : 'Task completed');
       onRefreshTasks();
     } catch (e: any) {
-      toast('Failed to update task');
+      toast(e.message || 'Failed to update task');
     }
   };
 
@@ -82,33 +86,37 @@ export const TasksPage: React.FC<{
     }
   };
 
-
-  const trow = (t: Task) => (
-    <V key={t.id} style={{ ...R, flexDirection: 'row', gap: 10, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
-      <P
-        onPress={() => toggleTask(t)}
-        style={{
-          width: 22,
-          height: 22,
-          borderRadius: 11,
-          border: '2px solid ' + (t.done ? G : '#cbd5e1'),
-          background: t.done ? G : '#fff',
-          color: '#fff',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        {t.done && <I n="tick" s={14} />}
-      </P>
-      <V style={{ flex: 1, gap: 2 }}>
-        <b style={{ textDecoration: t.done ? 'line-through' : 'none', color: t.done ? MU : '#0f172a' }}>{t.title}</b>
-        <span style={{ color: MU, fontSize: 12 }}>
-          {isMgmt && t.whoUser?.name ? t.whoUser.name + ' · ' : ''}
-          {t.client?.name ? t.client.name + ' · ' : ''}
-          {t.desc}
-        </span>
-      </V>
+  const trow = (t: Task) => {
+    const isAssignee = t.whoUserId === user?.id;
+    return (
+      <V key={t.id} style={{ ...R, flexDirection: 'row', gap: 10, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+        <P
+          onPress={() => toggleTask(t)}
+          title={isAssignee ? (t.done ? 'Mark incomplete' : 'Mark complete') : `Assigned to ${t.whoUser?.name || 'another member'}`}
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            border: '2px solid ' + (t.done ? G : isAssignee ? '#cbd5e1' : '#e2e8f0'),
+            background: t.done ? G : isAssignee ? '#fff' : '#f8fafc',
+            color: '#fff',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            cursor: isAssignee ? 'pointer' : 'not-allowed',
+            opacity: !isAssignee && !t.done ? 0.6 : 1,
+          }}
+        >
+          {t.done && <I n="tick" s={14} />}
+        </P>
+        <V style={{ flex: 1, gap: 2 }}>
+          <b style={{ textDecoration: t.done ? 'line-through' : 'none', color: t.done ? MU : '#0f172a' }}>{t.title}</b>
+          <span style={{ color: MU, fontSize: 12 }}>
+            {isMgmt && t.whoUser?.name ? t.whoUser.name + ' · ' : ''}
+            {t.client?.name ? t.client.name + ' · ' : ''}
+            {t.desc}
+          </span>
+        </V>
       <span
         style={{
           display: 'inline-flex',
@@ -128,6 +136,7 @@ export const TasksPage: React.FC<{
       <IB n="eye" onPress={() => onOpenModal('taskView', t)} />
     </V>
   );
+};
 
   return (
     <V style={{ gap: 12 }}>

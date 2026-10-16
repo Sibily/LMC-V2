@@ -48,12 +48,16 @@ export const Home: React.FC<HomeProps> = ({
   const greeting = hr < 12 ? 'Good Morning' : hr < 17 ? 'Good Afternoon' : 'Good Evening';
 
   const toggleReminder = async (t: Task) => {
+    if (t.whoUserId !== user?.id) {
+      toast(`Only ${t.whoUser?.name || 'the assigned user'} can complete this reminder`);
+      return;
+    }
     try {
       await api.tasks.toggle(t.id);
       toast(t.done ? 'Reopened' : 'Reminder done · see Completed');
       if (onRefreshTasks) onRefreshTasks();
     } catch (e: any) {
-      toast('Failed to update reminder');
+      toast(e.message || 'Failed to update reminder');
     }
   };
 
@@ -122,20 +126,24 @@ export const Home: React.FC<HomeProps> = ({
   // Dedicated remRow matching prototype:
   const remRow = (t: Task) => {
     const isLate = !t.done && (t.date < TODAY || (t.date === TODAY && t.time < nowHM));
+    const isAssignee = t.whoUserId === user?.id;
     return (
       <V key={t.id} style={{ ...R, flexDirection: 'row', gap: 12, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
         <P
           onPress={() => toggleReminder(t)}
+          title={isAssignee ? (t.done ? 'Mark incomplete' : 'Mark complete') : `Assigned to ${t.whoUser?.name || 'another member'}`}
           style={{
             width: 22,
             height: 22,
             borderRadius: 11,
-            border: '2px solid ' + (t.done ? G : isLate ? '#fca5a5' : '#cbd5e1'),
-            background: t.done ? G : '#fff',
+            border: '2px solid ' + (t.done ? G : isLate ? '#fca5a5' : isAssignee ? '#cbd5e1' : '#e2e8f0'),
+            background: t.done ? G : isAssignee ? '#fff' : '#f8fafc',
             color: '#fff',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
+            cursor: isAssignee ? 'pointer' : 'not-allowed',
+            opacity: !isAssignee && !t.done ? 0.6 : 1,
           }}
         >
           {t.done && <I n="tick" s={15} />}
