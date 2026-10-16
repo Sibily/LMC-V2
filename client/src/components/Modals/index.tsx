@@ -314,7 +314,20 @@ export function serviceIconMeta(name: string) {
   const s = String(name || '');
   const hit = SERVICE_ICON_RULES.find(([re]) => re.test(s));
   if (hit) return { icon: hit[1], color: hit[2], bg: hit[3] };
-  return { icon: 'briefcase', color: '#475569', bg: '#f1f5f9' };
+  const icons: [string, string, string][] = [
+    ['briefcase', '#475569', '#f1f5f9'],
+    ['file', '#0369a1', '#e0f2fe'],
+    ['building', '#0891b2', '#ecfeff'],
+    ['shield', '#7c3aed', '#f5f3ff'],
+    ['globe', '#0d9488', '#f0fdfa'],
+    ['note', '#db2777', '#fdf2f8'],
+    ['users', '#2563eb', '#eff6ff'],
+    ['receipt', '#ea580c', '#fff7ed'],
+  ];
+  let hsh = 0;
+  for (let i = 0; i < s.length; i++) hsh = (hsh * 31 + s.charCodeAt(i)) | 0;
+  const a = icons[Math.abs(hsh) % icons.length];
+  return { icon: a[0], color: a[1], bg: a[2] };
 }
 
 // 3. Service Form
@@ -329,6 +342,7 @@ export const SvcForm: React.FC<{
   const [name, setName] = useState(service ? service.name : '');
   const [respUserId, setRespUserId] = useState(service ? service.respUserId : user?.id);
   const [catalog, setCatalog] = useState<string[]>([]);
+  const [showAll, setShowAll] = useState(false);
 
   React.useEffect(() => {
     api.services.getCatalog().then(setCatalog).catch(() => {});
@@ -337,22 +351,39 @@ export const SvcForm: React.FC<{
   const base = LEGAL_SERVICE_OPTIONS.filter((x) => x !== 'Other / Custom Service');
   const allServices = Array.from(new Set([...base, ...catalog]));
   const q = name.trim().toLowerCase();
-  const filtered = q ? allServices.filter((x) => x.toLowerCase().includes(q)) : allServices;
+  const matches = q ? allServices.filter((x) => x.toLowerCase().includes(q)) : allServices;
+  const priority = [
+    'Legal Services',
+    'Legal Consultancy',
+    'Wills & Probates',
+    'Trademark Registration',
+    'Business Setup',
+    'Golden Visa',
+  ];
+  const list = q ? matches : (showAll ? allServices : priority.filter((x) => allServices.includes(x)));
+
+  const isExact = allServices.some((x) => x.toLowerCase() === q);
+  const canCreate = !!q && !isExact && q !== 'other / custom service';
 
   const save = async () => {
     if (!name.trim()) {
-      toast('Please enter or select a service name');
+      toast('Choose a service or enter a custom service name');
+      return;
+    }
+    const finalName = name.trim() === 'Other / Custom Service' ? '' : name.trim();
+    if (!finalName) {
+      toast('Type the custom service name first');
       return;
     }
     try {
       if (service) {
-        await api.services.update(service.id, { name: name.trim(), respUserId });
+        await api.services.update(service.id, { name: finalName, respUserId });
         toast('Service updated');
       } else {
-        await api.services.create(clientId, { name: name.trim(), respUserId });
+        await api.services.create(clientId, { name: finalName, respUserId });
         // Automatically save custom service to catalog if not already present
-        if (!allServices.some((x) => x.toLowerCase() === name.trim().toLowerCase())) {
-          api.services.addCatalog(name.trim()).catch(() => {});
+        if (!allServices.some((x) => x.toLowerCase() === finalName.toLowerCase())) {
+          api.services.addCatalog(finalName).catch(() => {});
         }
         toast('Service added');
       }
@@ -366,28 +397,31 @@ export const SvcForm: React.FC<{
   return (
     <Modal title={service ? 'Edit Service' : 'Add Service'} close={onClose}>
       <V style={{ gap: 12 }}>
-        <F l="Service *">
+        <F l="Service">
           <input
             id="buzzrdesk-custom-service-input"
             style={inp}
-            placeholder="Search legal services or type a custom one..."
+            placeholder="Search or type a service"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setShowAll(!!e.target.value.trim());
+            }}
           />
           <div
             style={{
               display: 'flex',
               flexWrap: 'wrap',
               gap: 7,
-              marginTop: 10,
-              maxHeight: 180,
+              marginTop: 8,
+              maxHeight: 220,
               overflowY: 'auto',
-              padding: 2,
+              padding: '1px 2px',
             }}
           >
-            {filtered.slice(0, 15).map((x) => {
-              const on = x.toLowerCase() === name.trim().toLowerCase();
-              const meta = serviceIconMeta(x);
+            {list.map((x) => {
+              const on = x === name;
+              const im = serviceIconMeta(x);
               return (
                 <P
                   key={x}
@@ -395,24 +429,127 @@ export const SvcForm: React.FC<{
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 6,
-                    padding: '6px 12px',
-                    borderRadius: 20,
+                    gap: 5,
+                    padding: '7px 11px',
+                    borderRadius: 18,
                     fontWeight: 600,
-                    fontSize: 12.5,
-                    border: '1px solid ' + (on ? meta.color : BD),
-                    background: on ? meta.bg : '#fff',
-                    color: on ? meta.color : '#334155',
+                    fontSize: 12,
+                    border: '1px solid ' + (on ? G : BD),
+                    background: on ? '#f0fdf4' : '#fff',
+                    color: on ? '#15803d' : '#334155',
                   }}
                 >
-                  <I n={meta.icon} s={13} />
+                  <span
+                    style={{
+                      width: 19,
+                      height: 19,
+                      borderRadius: 6,
+                      background: im.bg,
+                      color: im.color,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <I n={im.icon} s={12} />
+                  </span>
                   {x}
+                  {on && <I n="tick" s={13} />}
                 </P>
               );
             })}
+
+            {!q && (
+              <P
+                key="add-custom-service"
+                onPress={() => {
+                  setName('');
+                  requestAnimationFrame(() => {
+                    const el = document.getElementById('buzzrdesk-custom-service-input');
+                    if (el) el.focus();
+                  });
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '7px 11px',
+                  borderRadius: 18,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  border: '1.5px dashed #9ca3af',
+                  background: '#f8fafc',
+                  color: '#64748b',
+                }}
+              >
+                <I n="plus" s={13} />
+                Add custom service
+              </P>
+            )}
+
+            {canCreate && (
+              <P
+                key="create-typed-service"
+                onPress={async () => {
+                  const customName = name.trim();
+                  try {
+                    await api.services.addCatalog(customName);
+                    setCatalog((prev) => [...prev, customName]);
+                    toast('Custom service saved to the service catalog');
+                  } catch (e) {}
+                  setName(customName);
+                  setShowAll(true);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 12px',
+                  borderRadius: 18,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  border: '1.5px dashed #16a34a',
+                  background: '#f0fdf4',
+                  color: '#15803d',
+                  maxWidth: '100%',
+                  whiteSpace: 'normal',
+                }}
+              >
+                <I n="plus" s={14} />
+                Create custom service: “{name.trim()}”
+              </P>
+            )}
+
+            {!q && (
+              <P
+                key="see-all-services"
+                onPress={() => setShowAll((v) => !v)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 18,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  border: '1px solid #bbf7d0',
+                  background: '#f0fdf4',
+                  color: '#15803d',
+                }}
+              >
+                {showAll ? 'Show fewer' : 'See all'}
+              </P>
+            )}
+          </div>
+
+          <div style={{ fontSize: 12, color: MU, marginTop: 4 }}>
+            {canCreate
+              ? 'Not listed? Select “Create custom service”, then save. It will be added to the service list for future clients.'
+              : showAll && !q
+              ? 'All available services, including previously created custom services.'
+              : 'Popular services shown first. Search or choose “See all services” for the full list.'}
           </div>
         </F>
-        <F l="Responsible Team Member">
+
+        <F l="Responsible">
           <V style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
             {team.map((u) => (
               <P
@@ -437,8 +574,9 @@ export const SvcForm: React.FC<{
             ))}
           </V>
         </F>
+
         <B k={1} onPress={save}>
-          {service ? 'Save Changes' : 'Add Service'}
+          Save
         </B>
       </V>
     </Modal>
