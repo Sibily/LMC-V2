@@ -394,11 +394,18 @@ export const Sel: React.FC<{
   const [pos, setPos] = useState<any>(null);
   const ref = useRef<HTMLButtonElement>(null);
 
+  const nodeText = (c: any): string => {
+    if (c == null || c === false || c === true) return '';
+    if (Array.isArray(c)) return c.map(nodeText).join('');
+    if (typeof c === 'object' && c.props && c.props.children) return nodeText(c.props.children);
+    return String(c);
+  };
+
   const opts = React.Children.toArray(children)
     .filter((el): el is React.ReactElement<{ value?: any; children?: React.ReactNode }> => React.isValidElement(el) && el.type === 'option')
     .map((el) => ({
-      v: String(el.props.value !== undefined ? el.props.value : el.props.children),
-      l: String(el.props.children),
+      v: String(el.props.value !== undefined ? el.props.value : nodeText(el.props.children)),
+      l: nodeText(el.props.children),
     }));
 
   const cur = opts.find((o) => o.v === String(value ?? ''));

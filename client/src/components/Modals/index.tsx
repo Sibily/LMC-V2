@@ -109,7 +109,7 @@ export const ClientForm: React.FC<{
             <Sel style={{ ...inp, width: 128, flexShrink: 0 }} value={f.cc} onChange={(e) => sf({ ...f, cc: e.target.value })}>
               {CCS.map(([k2, n2]) => (
                 <option key={k2} value={k2}>
-                  {n2} {k2}
+                  {`${n2} ${k2}`}
                 </option>
               ))}
             </Sel>
