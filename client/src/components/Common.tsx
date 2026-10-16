@@ -256,6 +256,14 @@ export const Modal: React.FC<{
   wide?: boolean;
   children: React.ReactNode;
 }> = ({ title, close, wide, children }) => {
+  const [isWide, setIsWide] = useState(typeof window !== 'undefined' ? window.innerWidth >= 900 : true);
+
+  useEffect(() => {
+    const onResize = () => setIsWide(window.innerWidth >= 900);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -268,17 +276,16 @@ export const Modal: React.FC<{
 
   return (
     <div
+      onClick={close}
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
+        background: '#0f172a88',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isWide ? 'center' : 'flex-end',
         justifyContent: 'center',
         zIndex: 50,
-        padding: 16,
+        padding: isWide ? 16 : 0,
         boxSizing: 'border-box',
       }}
     >
@@ -288,22 +295,42 @@ export const Modal: React.FC<{
           background: '#fff',
           width: '100%',
           maxWidth: wide ? 860 : 520,
-          maxHeight: '88vh',
-          overflowY: 'auto',
-          borderRadius: 20,
-          padding: 20,
-          boxShadow: '0 20px 48px rgba(15, 23, 42, 0.28), 0 4px 14px rgba(15, 23, 42, 0.08)',
-          animation: 'modalFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+          maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
+          borderRadius: isWide ? 20 : '22px 22px 0 0',
+          boxShadow: '0 20px 48px rgba(15, 23, 42, 0.28)',
           boxSizing: 'border-box',
         }}
       >
-        <V style={{ ...R, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 }}>
-          <b style={{ fontSize: 17, color: '#0f172a' }}>{title}</b>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 16px 10px',
+            flexShrink: 0,
+            background: '#fff',
+            borderBottom: '1px solid #f1f5f9',
+          }}
+        >
+          <b style={{ fontSize: 16, userSelect: 'none', color: '#0f172a' }}>{title}</b>
           <IB n="x" onPress={close} title="Close (Esc)" />
-        </V>
-        {children}
+        </div>
+        <div
+          data-mbody="1"
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            padding: '12px 16px calc(16px + env(safe-area-inset-bottom,0px))',
+            overscrollBehavior: 'contain',
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -512,8 +539,15 @@ export const Pipe: React.FC<{
   cur: string;
   pick?: (s: any) => void;
 }> = ({ st, cur, pick }) => {
+  const [cols, setCols] = useState(typeof window !== 'undefined' && window.innerWidth >= 700 ? 6 : 4);
+
+  useEffect(() => {
+    const handleResize = () => setCols(window.innerWidth >= 700 ? 6 : 4);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const ci = st.findIndex((x) => x.id === cur);
-  const cols = window.innerWidth >= 700 ? 6 : 4;
   const PAD = 0;
   const GR = '#d5dde6';
   const rows: any[][] = [];

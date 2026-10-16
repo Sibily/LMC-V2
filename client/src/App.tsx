@@ -670,7 +670,8 @@ export const App: React.FC = () => {
         borderBottom: '1px solid ' + BD,
         position: 'sticky',
         top: 0,
-        zIndex: 30,
+        zIndex: 10,
+        paddingTop: 'calc(10px + env(safe-area-inset-top,0px))',
         boxSizing: 'border-box',
       }}
     >
@@ -857,183 +858,40 @@ export const App: React.FC = () => {
           )}
         </div>
       ) : (
-        <Logo s={36} />
+        <div style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <Logo s={40} />
+        </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 'auto', position: 'relative', zIndex: 1 }}>
         {!wide && (
-          <div style={{ position: 'relative', display: 'flex' }}>
-            <IB
-              n="search"
-              s={22}
-              onPress={() => {
-                setMobileSearchOpen(!mobileSearchOpen);
-                if (!mobileSearchOpen) {
-                  setTimeout(() => mobileSearchRef.current?.focus(), 60);
-                }
-              }}
-              style={{
-                width: 42,
-                height: 42,
-                background: mobileSearchOpen ? '#f1f5f9' : 'transparent',
-                borderRadius: 12,
-              }}
-            />
-            {mobileSearchOpen && (
-              <>
-                <div
-                  onClick={() => setMobileSearchOpen(false)}
-                  style={{ position: 'fixed', inset: 0, zIndex: 45 }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 8px)',
-                    right: 0,
-                    width: 'min(340px, calc(100vw - 32px))',
-                    background: '#fff',
-                    borderRadius: 14,
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 16px 36px rgba(15, 23, 42, 0.16)',
-                    zIndex: 50,
-                    padding: 8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                    animation: 'modalFadeIn 0.14s ease',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '0 10px',
-                      height: 38,
-                      background: '#f3f6f4',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 10,
-                    }}
-                  >
-                    <I n="search" s={16} style={{ color: MU }} />
-                    <input
-                      ref={mobileSearchRef}
-                      placeholder="Search clients, tasks, team..."
-                      value={searchText}
-                      onChange={(e) => {
-                        setSearchText(e.target.value);
-                        setSelectedSearchIndex(0);
-                      }}
-                      onKeyDown={handleSearchKeyDown}
-                      style={{
-                        border: 'none',
-                        background: 'transparent',
-                        outline: 'none',
-                        fontSize: 13,
-                        color: '#0f172a',
-                        flex: 1,
-                        padding: 0,
-                      }}
-                    />
-                    {searchText && (
-                      <IB
-                        n="x"
-                        s={16}
-                        onPress={() => {
-                          setSearchText('');
-                          setSelectedSearchIndex(0);
-                          mobileSearchRef.current?.focus();
-                        }}
-                        style={{ width: 22, height: 22 }}
-                      />
-                    )}
-                  </div>
-
-                  {searchQ.length > 0 && (
-                    <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-                      {searchItems.length > 0 ? (
-                        <V style={{ gap: 2 }}>
-                          {searchItems.map((item, idx) => (
-                            <P
-                              key={item.id}
-                              onPress={item.action}
-                              style={{
-                                ...R,
-                                gap: 10,
-                                padding: '8px 10px',
-                                borderRadius: 10,
-                                background: idx === selectedSearchIndex ? '#f0fdf4' : 'transparent',
-                                borderLeft: idx === selectedSearchIndex ? `3px solid ${G}` : '3px solid transparent',
-                                cursor: 'pointer',
-                                alignItems: 'center',
-                              }}
-                            >
-                              {item.avatarName ? (
-                                <Av n={item.avatarName} s={26} />
-                              ) : (
-                                <div
-                                  style={{
-                                    width: 26,
-                                    height: 26,
-                                    borderRadius: 13,
-                                    background: item.badgeColor[0],
-                                    color: item.badgeColor[1],
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <I n={item.icon || 'task'} s={13} />
-                                </div>
-                              )}
-                              <V style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                                <b style={{ fontSize: 13, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {item.title}
-                                </b>
-                                <span style={{ fontSize: 11, color: MU, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {item.subtitle}
-                                </span>
-                              </V>
-                              <span
-                                style={{
-                                  fontSize: 9,
-                                  fontWeight: 700,
-                                  padding: '2px 5px',
-                                  borderRadius: 4,
-                                  background: item.badgeColor[0],
-                                  color: item.badgeColor[1],
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {item.badge}
-                              </span>
-                            </P>
-                          ))}
-                        </V>
-                      ) : (
-                        <div style={{ textAlign: 'center', padding: '20px 8px', color: MU, fontSize: 12 }}>
-                          Nothing matches “{searchText}”.
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+          <IB
+            n="search"
+            s={25}
+            onPress={() => {
+              setMobileSearchOpen(true);
+              setTimeout(() => mobileSearchRef.current?.focus(), 60);
+            }}
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: 23,
+              color: '#0b1b16',
+            }}
+          />
         )}
 
         <div style={{ position: 'relative', display: 'flex' }}>
           <IB
             n="bell"
-            s={22}
+            s={wide ? 22 : 25}
             onPress={() => setNotificationsOpen(!notificationsOpen)}
             style={{
-              width: 42,
-              height: 42,
+              width: wide ? 42 : 46,
+              height: wide ? 42 : 46,
               background: wide && notificationsOpen ? '#f1f5f9' : 'transparent',
-              borderRadius: 12,
+              borderRadius: wide ? 12 : 23,
+              color: '#0b1b16',
             }}
           />
           {unreadNotifs.length > 0 && (
@@ -1059,7 +917,6 @@ export const App: React.FC = () => {
               {unreadNotifs.length}
             </span>
           )}
-
         </div>
       </div>
     </div>
@@ -1143,6 +1000,7 @@ export const App: React.FC = () => {
   );
 
   // Mobile Bottom Navigation Bar
+  // Mobile Bottom Navigation Bar matching prototype line 423
   const bottomBar = (
     <V
       style={{
@@ -1154,7 +1012,7 @@ export const App: React.FC = () => {
         background: '#fff',
         borderTop: '1px solid ' + BD,
         zIndex: 10,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom,0px)',
       }}
     >
       {[
@@ -1162,7 +1020,7 @@ export const App: React.FC = () => {
         ['clients', 'Clients', 'users'],
         ['+'],
         ['inbox', 'Inbox', 'inbox'],
-        ['settings', 'Profile', 'user'],
+        ['settings', user.name, 'user'],
       ].map(([k, l, ic]) => {
         if (k === '+') {
           return (
@@ -1173,9 +1031,9 @@ export const App: React.FC = () => {
             >
               <div
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
+                  width: 58,
+                  height: 58,
+                  borderRadius: 29,
                   background: G,
                   color: '#fff',
                   display: 'flex',
@@ -1185,13 +1043,13 @@ export const App: React.FC = () => {
                   boxShadow: '0 4px 12px #16a34a66',
                 }}
               >
-                <I n="plus" s={26} />
+                <I n="plus" s={28} />
               </div>
             </P>
           );
         }
 
-        const on = nav.page === k;
+        const on = nav.page === k || (k === 'clients' && nav.page === 'clientDetail');
         return (
           <P
             key={k}
@@ -1202,26 +1060,42 @@ export const App: React.FC = () => {
               alignItems: 'center',
               gap: 3,
               padding: '10px 0 8px',
-              fontSize: 12,
+              fontSize: 12.5,
               fontWeight: 700,
-              color: on ? '#0b1b16' : MU,
+              color: on ? '#0b1b16' : '#475569',
             }}
           >
             <div
               style={{
-                height: 30,
-                width: 58,
-                borderRadius: 16,
+                position: 'relative',
                 display: 'flex',
+                height: 32,
+                width: 62,
                 alignItems: 'center',
                 justifyContent: 'center',
+                borderRadius: 16,
                 background: on ? '#dcfce7' : 'transparent',
-                color: on ? '#15803d' : MU,
+                color: on ? '#15803d' : '#475569',
               }}
             >
-              <I n={ic} s={22} />
+              {k === 'settings' ? (
+                <div
+                  style={{
+                    borderRadius: '50%',
+                    padding: 1,
+                    border: '2px solid ' + (on ? G : 'transparent'),
+                    display: 'flex',
+                  }}
+                >
+                  <Av n={user.name} s={24} url={user.avatarUrl} />
+                </div>
+              ) : (
+                <I n={ic} s={25} />
+              )}
             </div>
-            {l}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>
+              {l}
+            </span>
           </P>
         );
       })}
@@ -1575,18 +1449,303 @@ export const App: React.FC = () => {
     );
   })();
 
+  // Mobile Fullscreen Search Panel matching prototype line 437
+  const mobileSearchPanel = () => {
+    const q = searchText.trim().toLowerCase();
+    const close = () => {
+      setMobileSearchOpen(false);
+      setSearchText('');
+    };
+
+    const hl = (t: string) => {
+      t = String(t || '');
+      const firstWord = q.split(/\s+/).filter(Boolean)[0] || '';
+      const k = firstWord ? t.toLowerCase().indexOf(firstWord) : -1;
+      return k < 0 ? (
+        t
+      ) : (
+        <>
+          {t.slice(0, k)}
+          <mark style={{ background: '#bbf7d0', color: 'inherit', borderRadius: 3, padding: '0 1px' }}>
+            {t.slice(k, k + firstWord.length)}
+          </mark>
+          {t.slice(k + firstWord.length)}
+        </>
+      );
+    };
+
+    const rowS: React.CSSProperties = {
+      ...R,
+      flexDirection: 'row',
+      gap: 12,
+      padding: '10px 16px',
+      alignItems: 'center',
+    };
+    const ell: React.CSSProperties = {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    };
+
+    const row = (
+      key: string,
+      lead: React.ReactNode,
+      title: string,
+      sub: string,
+      on: () => void,
+      badge?: string
+    ) => (
+      <P key={key} onPress={on} style={rowS}>
+        {lead}
+        <V style={{ flex: 1, gap: 2, minWidth: 0 }}>
+          <b style={ell}>{hl(title)}</b>
+          <span style={{ fontSize: 13, color: MU, ...ell }}>{hl(sub)}</span>
+        </V>
+        {badge && (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#15803d',
+              background: '#dcfce7',
+              padding: '2px 8px',
+              borderRadius: 20,
+              flexShrink: 0,
+            }}
+          >
+            {badge}
+          </span>
+        )}
+      </P>
+    );
+
+    const ib = (ic: string, bg: string, co: string) => (
+      <div
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 21,
+          background: bg,
+          color: co,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <I n={ic} s={20} />
+      </div>
+    );
+
+    const matchClients = clients.filter(
+      (k) =>
+        !q ||
+        [k.name, k.company, k.phone, k.email, k.loc, k.source, k.referrer, k.status].some((val) =>
+          String(val || '').toLowerCase().includes(q)
+        )
+    );
+    const matchTasks = tasks.filter(
+      (t) =>
+        t.type !== 'Reminder' &&
+        (!q ||
+          [t.title, t.desc, t.client?.name, t.stageName, t.note].some((val) =>
+            String(val || '').toLowerCase().includes(q)
+          ))
+    );
+    const matchReminders = tasks.filter(
+      (t) =>
+        t.type === 'Reminder' &&
+        (!q ||
+          [t.title, t.desc, t.client?.name, t.stageName, t.note].some((val) =>
+            String(val || '').toLowerCase().includes(q)
+          ))
+    );
+    const matchNotes = notes.filter(
+      (n) =>
+        !q ||
+        [n.title, n.body, n.client?.name].some((val) =>
+          String(val || '').toLowerCase().includes(q)
+        )
+    );
+
+    const sec = (t: string, n: number, items: React.ReactNode) =>
+      n > 0 ? (
+        <V key={t} style={{ paddingBottom: 4 }}>
+          <span
+            style={{
+              padding: '14px 16px 4px',
+              fontSize: 12,
+              fontWeight: 700,
+              color: MU,
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+            }}
+          >
+            {t} · {n}
+          </span>
+          {items}
+        </V>
+      ) : null;
+
+    const rC = (k: Client) =>
+      row(
+        'c' + k.id,
+        <Av n={k.name} s={42} />,
+        k.name,
+        [k.company || k.type, k.phone].filter(Boolean).join(' · '),
+        () => {
+          close();
+          setNav({ page: 'clientDetail', id: k.id });
+        },
+        k.status !== 'Active Client' ? k.status : ''
+      );
+
+    const rT = (t: Task) =>
+      row(
+        't' + t.id,
+        ib(t.type === 'Reminder' ? 'bell' : 'task', t.type === 'Reminder' ? '#fce7f3' : '#dcfce7', t.type === 'Reminder' ? '#db2777' : '#15803d'),
+        t.title,
+        (t.client?.name || 'Personal') + ' · ' + fmt(t.date) + ' ' + t12(t.time),
+        () => {
+          close();
+          setActiveModal({ type: 'taskView', data: t });
+        },
+        t.done ? 'Done' : ''
+      );
+
+    const rN = (n: Note) =>
+      row(
+        'n' + n.id,
+        ib('note', '#e0f2fe', '#0284c7'),
+        n.title || 'Note',
+        (n.client?.name || 'Personal') + ' · ' + (n.body || '').slice(0, 45),
+        () => {
+          close();
+          setActiveModal({ type: 'note', data: n });
+        }
+      );
+
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: '#fff',
+          zIndex: 70,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <V
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            padding: 'calc(10px + env(safe-area-inset-top,0px)) 10px 8px 6px',
+            borderBottom: '1px solid ' + BD,
+          }}
+        >
+          <IB n="back" s={24} onPress={close} style={{ color: '#0b1b16' }} />
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#f3f6f4',
+              borderRadius: 24,
+              padding: '0 14px',
+              height: 46,
+              color: MU,
+            }}
+          >
+            <I n="search" s={18} />
+            <input
+              ref={mobileSearchRef}
+              autoFocus
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Search clients, tasks, reminders…"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                border: 0,
+                outline: 'none',
+                background: 'transparent',
+                fontSize: 16,
+                color: '#0b1b16',
+              }}
+            />
+            {searchText && (
+              <P onPress={() => setSearchText('')} style={{ color: MU }}>
+                <I n="x" s={18} />
+              </P>
+            )}
+          </div>
+        </V>
+
+        <V style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(24px + env(safe-area-inset-bottom,0px))' }}>
+          {q ? (
+            <V>
+              {sec('Clients', matchClients.length, matchClients.slice(0, 8).map(rC))}
+              {sec('Tasks', matchTasks.length, matchTasks.slice(0, 8).map(rT))}
+              {sec('Reminders', matchReminders.length, matchReminders.slice(0, 8).map(rT))}
+              {sec('Notes', matchNotes.length, matchNotes.slice(0, 8).map(rN))}
+              {matchClients.length + matchTasks.length + matchReminders.length + matchNotes.length === 0 && (
+                <V style={{ alignItems: 'center', gap: 8, padding: '48px 24px', color: MU }}>
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 28,
+                      background: '#f3f6f4',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <I n="search" s={24} />
+                  </div>
+                  <b style={{ color: '#0b1b16' }}>No results</b>
+                  <span style={{ textAlign: 'center' }}>
+                    Nothing matches “{searchText.trim()}”. Try a name, phone number, or service.
+                  </span>
+                </V>
+              )}
+            </V>
+          ) : (
+            <V>
+              {sec('Recent clients', clients.slice(0, 4).length, clients.slice(0, 4).map(rC))}
+              {sec(
+                'Next reminders',
+                tasks.filter((t) => t.type === 'Reminder' && !t.done).slice(0, 3).length,
+                tasks.filter((t) => t.type === 'Reminder' && !t.done).slice(0, 3).map(rT)
+              )}
+              <span style={{ padding: '16px', color: MU, fontSize: 13 }}>
+                Search by name, company, phone, email, service, task, reminder or note.
+              </span>
+            </V>
+          )}
+        </V>
+      </div>
+    );
+  };
+
   return (
     <V style={{ flexDirection: wide ? 'row' : 'column', minHeight: '100vh', width: '100%' }}>
       {wide && sidebar}
 
       <V style={{ flex: 1, minWidth: 0 }}>
         {topBar}
-        <V style={{ padding: 16, paddingBottom: wide ? 24 : 110, maxWidth: wide && nav.page === 'inbox' ? 1240 : 980, width: '100%', margin: '0 auto' }}>
+        <V style={{ padding: 16, paddingBottom: wide ? 24 : 116, maxWidth: wide && nav.page === 'inbox' ? 1240 : 980, width: '100%', margin: '0 auto' }}>
           {pageContent}
         </V>
       </V>
 
       {!wide && bottomBar}
+
+      {/* Mobile Fullscreen Search Panel matching prototype */}
+      {!wide && mobileSearchOpen && mobileSearchPanel()}
 
 
 

@@ -234,9 +234,9 @@ export const Home: React.FC<HomeProps> = ({
       </V>
 
       {/* Quick Action Circles */}
-      <V style={{ flexDirection: 'row', gap: 20, padding: '2px 2px 0' }}>
+      <V style={{ flexDirection: 'row', gap: 20, padding: '2px 2px 0', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
         {quickActions.map(({ label, icon, color, action }) => (
-          <P key={label} onPress={action} style={{ flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative' }}>
+          <P key={label} onPress={action} style={{ flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative', flexShrink: 0 }}>
             <div style={{ width: 58, height: 58, borderRadius: 29, padding: 3, border: '2px dashed ' + color, display: 'flex' }}>
               <div
                 style={{
