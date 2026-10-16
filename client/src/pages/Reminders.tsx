@@ -197,71 +197,7 @@ export const RemindersPage: React.FC<{
         </V>
       )}
 
-      {/* Tab Header with Count Badge */}
-      <V style={{ gap: 6 }}>
-        <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <b style={{ fontSize: 15 }}>{selectedDate ? fmt(selectedDate) : nm[tab]}</b>
-          <span style={{ background: '#fce7f3', color: '#be185d', fontSize: 12, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>
-            {list.length}
-          </span>
-        </V>
-
-        {/* 4 Icon Tabs with Badge counts */}
-        <V style={{ flexDirection: 'row', gap: 8 }}>
-          {tabMeta.map(([k, lb, ic]) => {
-            const on = tab === k && !selectedDate;
-            const n = k === 'done' || k === 'up' ? sets[k].length : sets[k].filter((t) => !t.done).length;
-            return (
-              <P
-                key={k}
-                title={lb}
-                onPress={() => {
-                  setTab(k);
-                  setSelectedDate('');
-                }}
-                style={{
-                  flex: 1,
-                  height: 48,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 14,
-                  position: 'relative',
-                  background: on ? G : '#fff',
-                  color: on ? '#fff' : k === 'past' && n > 0 ? '#dc2626' : MU,
-                  border: '1px solid ' + (on ? G : BD),
-                }}
-              >
-                <I n={ic} s={20} />
-                {n > 0 && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: -6,
-                      right: -4,
-                      minWidth: 18,
-                      height: 18,
-                      padding: '0 4px',
-                      borderRadius: 9,
-                      background: k === 'past' ? '#dc2626' : on ? '#fff' : '#0f172a',
-                      color: k === 'past' ? '#fff' : on ? G : '#fff',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: '2px solid #f3f6f4',
-                    }}
-                  >
-                    {n}
-                  </span>
-                )}
-              </P>
-            );
-          })}
-        </V>
-      </V>
-
-      {/* Date Scrubber + Calendar Picker */}
+      {/* Date Scrubber + Calendar Picker (Above Tabs) */}
       <V style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flex: 1, minWidth: 0, padding: '2px 0' }}>
           {scrubberDays.map((d) => {
@@ -325,6 +261,74 @@ export const RemindersPage: React.FC<{
             style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
           />
         </div>
+      </V>
+
+      {/* Tab Header with Count Badge & Tabs */}
+      <V style={{ gap: 6 }}>
+        <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <b style={{ fontSize: 15 }}>{selectedDate ? fmt(selectedDate) : nm[tab]}</b>
+          <span style={{ background: '#fce7f3', color: '#be185d', fontSize: 12, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>
+            {list.length}
+          </span>
+        </V>
+
+        {/* Tabs: Icons on Mobile, Visible Labels on Desktop */}
+        <V style={{ flexDirection: 'row', gap: 8 }}>
+          {tabMeta.map(([k, lb, ic]) => {
+            const on = tab === k && !selectedDate;
+            const n = k === 'done' || k === 'up' ? sets[k].length : sets[k].filter((t) => !t.done).length;
+            return (
+              <P
+                key={k}
+                title={lb}
+                onPress={() => {
+                  setTab(k);
+                  setSelectedDate('');
+                }}
+                style={{
+                  flex: 1,
+                  height: 44,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  borderRadius: 14,
+                  position: 'relative',
+                  background: on ? G : '#fff',
+                  color: on ? '#fff' : k === 'past' && n > 0 ? '#dc2626' : MU,
+                  border: '1px solid ' + (on ? G : BD),
+                  fontWeight: 600,
+                  fontSize: 13,
+                }}
+              >
+                <I n={ic} s={18} />
+                <span className="tab-label-desktop">{lb}</span>
+                {n > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -4,
+                      minWidth: 18,
+                      height: 18,
+                      padding: '0 4px',
+                      borderRadius: 9,
+                      background: k === 'past' ? '#dc2626' : on ? '#fff' : '#0f172a',
+                      color: k === 'past' ? '#fff' : on ? G : '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid #f3f6f4',
+                    }}
+                  >
+                    {n}
+                  </span>
+                )}
+              </P>
+            );
+          })}
+        </V>
       </V>
 
       {/* Reminders List grouped by date */}

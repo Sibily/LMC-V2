@@ -33,3 +33,13 @@ input, select, textarea, button {
     transform: scale(1) translateY(0);
   }
 }
+
+.tab-label-desktop {
+  display: none;
+}
+@media (min-width: 640px) {
+  .tab-label-desktop {
+    display: inline;
+  }
+}
+

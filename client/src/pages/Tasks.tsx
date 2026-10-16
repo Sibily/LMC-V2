@@ -198,13 +198,14 @@ export const TasksPage: React.FC<{
         ].map(([k, l, ic]) => (
           <P
             key={k}
+            title={l}
             onPress={() => {
               setTab(k as any);
               setSelectedDate('');
             }}
             style={{
               flex: 1,
-              height: 38,
+              height: 40,
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
@@ -217,7 +218,7 @@ export const TasksPage: React.FC<{
             }}
           >
             <I n={ic} s={16} />
-            {l}
+            <span className="tab-label-desktop">{l}</span>
           </P>
         ))}
       </V>

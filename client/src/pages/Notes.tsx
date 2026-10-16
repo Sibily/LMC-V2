@@ -147,69 +147,7 @@ export const NotesPage: React.FC<{
       </V>
 
       {/* Tabs with badge counts */}
-      <V style={{ gap: 6 }}>
-        <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <b style={{ fontSize: 15 }}>{selectedDate ? fmt(selectedDate) : nm[tab]}</b>
-          <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 12, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>
-            {list.length}
-          </span>
-        </V>
-
-        <V style={{ flexDirection: 'row', gap: 8 }}>
-          {tabMeta.map(([k, lb, ic]) => {
-            const on = tab === k && !selectedDate;
-            const n = sets[k].length;
-            return (
-              <P
-                key={k}
-                title={lb}
-                onPress={() => {
-                  setTab(k);
-                  setSelectedDate('');
-                }}
-                style={{
-                  flex: 1,
-                  height: 48,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 14,
-                  position: 'relative',
-                  background: on ? G : '#fff',
-                  color: on ? '#fff' : MU,
-                  border: '1px solid ' + (on ? G : BD),
-                }}
-              >
-                <I n={ic} s={20} />
-                {n > 0 && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: -6,
-                      right: -4,
-                      minWidth: 18,
-                      height: 18,
-                      padding: '0 4px',
-                      borderRadius: 9,
-                      background: on ? '#fff' : '#0f172a',
-                      color: on ? G : '#fff',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: '2px solid #f3f6f4',
-                    }}
-                  >
-                    {n}
-                  </span>
-                )}
-              </P>
-            );
-          })}
-        </V>
-      </V>
-
-      {/* 14-day date scrubber + Calendar picker */}
+      {/* 14-day date scrubber + Calendar picker (Above Tabs) */}
       <V style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
         <div
           ref={(el) => {
@@ -277,11 +215,78 @@ export const NotesPage: React.FC<{
           <input
             type="date"
             value={selectedDate}
-            max={TODAY}
             onChange={(e) => setSelectedDate(e.target.value)}
             style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
           />
         </div>
+      </V>
+
+      {/* Tab Header with Count Badge & Tabs */}
+      <V style={{ gap: 6 }}>
+        <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <b style={{ fontSize: 15 }}>{selectedDate ? fmt(selectedDate) : nm[tab]}</b>
+          <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 12, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>
+            {list.length}
+          </span>
+        </V>
+
+        {/* Tabs: Icons on Mobile, Visible Labels on Desktop */}
+        <V style={{ flexDirection: 'row', gap: 8 }}>
+          {tabMeta.map(([k, lb, ic]) => {
+            const on = tab === k && !selectedDate;
+            const n = sets[k].length;
+            return (
+              <P
+                key={k}
+                title={lb}
+                onPress={() => {
+                  setTab(k);
+                  setSelectedDate('');
+                }}
+                style={{
+                  flex: 1,
+                  height: 44,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  borderRadius: 14,
+                  position: 'relative',
+                  background: on ? G : '#fff',
+                  color: on ? '#fff' : MU,
+                  border: '1px solid ' + (on ? G : BD),
+                  fontWeight: 600,
+                  fontSize: 13,
+                }}
+              >
+                <I n={ic} s={18} />
+                <span className="tab-label-desktop">{lb}</span>
+                {n > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -4,
+                      minWidth: 18,
+                      height: 18,
+                      padding: '0 4px',
+                      borderRadius: 9,
+                      background: on ? '#fff' : '#0f172a',
+                      color: on ? G : '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid #f3f6f4',
+                    }}
+                  >
+                    {n}
+                  </span>
+                )}
+              </P>
+            );
+          })}
+        </V>
       </V>
 
       {/* Notes List grouped by date */}

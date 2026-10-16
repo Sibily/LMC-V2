@@ -606,6 +606,21 @@ export const EmpProfilePage: React.FC<EmpProfilePageProps> = ({
       {tab === 'tasks' ? (
         <V style={{ gap: 12 }}>
           {/* Header Row: Title / Count / Excel button */}
+          {/* Date strip matching prototype line 319 (Above Tabs) */}
+          {renderDateStrip(
+            wsT,
+            setWsT,
+            wd,
+            (d) => setWd(d),
+            (d) =>
+              doneTasks.some((t) => (t.doneAt || t.date) === d)
+                ? G
+                : openTasks.some((t) => t.date === d)
+                ? '#f59e0b'
+                : 'transparent'
+          )}
+
+          {/* Header Row: Title / Count / Excel button */}
           <V style={{ gap: 6 }}>
             <V style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 34 }}>
               <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -666,21 +681,23 @@ export const EmpProfilePage: React.FC<EmpProfilePageProps> = ({
                       setWd('');
                     }}
                     style={{
-                      width: 54,
-                      minWidth: 54,
+                      flex: 1,
                       height: 42,
-                      flexShrink: 0,
                       alignItems: 'center',
                       justifyContent: 'center',
+                      gap: 6,
                       borderRadius: 12,
                       position: 'relative',
                       background: on ? G : '#fff',
                       color: on ? '#fff' : MU,
                       border: '1px solid ' + (on ? G : BD),
                       cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: 13,
                     }}
                   >
                     <I n={ic} s={18} />
+                    <span className="tab-label-desktop">{lb}</span>
                     {n > 0 && (
                       <span
                         style={{
@@ -709,20 +726,6 @@ export const EmpProfilePage: React.FC<EmpProfilePageProps> = ({
               })}
             </V>
           </V>
-
-          {/* Date strip matching prototype line 319 */}
-          {renderDateStrip(
-            wsT,
-            setWsT,
-            wd,
-            (d) => setWd(d),
-            (d) =>
-              doneTasks.some((t) => (t.doneAt || t.date) === d)
-                ? G
-                : openTasks.some((t) => t.date === d)
-                ? '#f59e0b'
-                : 'transparent'
-          )}
 
           {/* Task list card */}
           <V style={{ ...card, gap: 2 }}>
