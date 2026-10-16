@@ -258,8 +258,9 @@ export const Modal: React.FC<{
   title: string;
   close: () => void;
   wide?: boolean;
+  zIndex?: number;
   children: React.ReactNode;
-}> = ({ title, close, wide, children }) => {
+}> = ({ title, close, wide, zIndex = 100, children }) => {
   const [isWide, setIsWide] = useState(typeof window !== 'undefined' ? window.innerWidth >= 900 : true);
 
   useEffect(() => {
@@ -288,7 +289,7 @@ export const Modal: React.FC<{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 50,
+        zIndex,
         padding: 16,
         boxSizing: 'border-box',
       }}

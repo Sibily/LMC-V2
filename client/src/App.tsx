@@ -2220,7 +2220,7 @@ const TaskViewModal: React.FC<{ task: Task; onClose: () => void; onSaved: () => 
   };
 
   return (
-    <Modal title={task.title} close={onClose}>
+    <Modal title={task.title} close={onClose} zIndex={110}>
       <V style={{ gap: 14 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13, background: '#f8fafc', padding: 12, borderRadius: 12, border: '1px solid #e2e8f0' }}>
           <div>
