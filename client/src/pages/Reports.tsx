@@ -282,14 +282,30 @@ export const ReportsPage: React.FC<{
               {frequency} Log · {myCompleted.length} tasks completed
             </b>
             {myCompleted.map((t) => (
-              <V key={t.id} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                <b>{t.title}</b>
-                <span style={{ fontSize: 12, color: MU }}>
-                  {t.client?.name ? t.client.name + ' · ' : ''}
-                  {t.doneTime || t.time}
-                </span>
-                {t.doneNote && <span style={{ fontSize: 13 }}>{t.doneNote}</span>}
-              </V>
+              <div
+                key={t.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  padding: '10px 0',
+                  borderBottom: '1px solid #f1f5f9',
+                }}
+              >
+                <V style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <b style={{ fontSize: 14 }}>{t.title}</b>
+                  <span style={{ fontSize: 12, color: MU }}>
+                    {t.client?.name ? t.client.name + ' · ' : ''}
+                    {t.service?.name ? t.service.name + ' · ' : ''}
+                    {t.doneTime || t.time}
+                  </span>
+                  {t.doneNote && <span style={{ fontSize: 13, color: '#334155' }}>{t.doneNote}</span>}
+                </V>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <IB n="eye" title="View task details" onPress={() => onOpenModal('taskView', t)} />
+                </div>
+              </div>
             ))}
             {!myCompleted.length && <span style={{ color: MU, padding: '16px 0' }}>No completed work logged for this period.</span>}
           </V>
@@ -499,21 +515,23 @@ export const ReportsPage: React.FC<{
                           boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                           <b style={{ fontSize: 13, color: '#0f172a' }}>{t.title}</b>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: 6,
-                              background: '#dcfce7',
-                              color: '#15803d',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {t.doneTime || t.time || 'Completed'}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                background: '#dcfce7',
+                                color: '#15803d',
+                              }}
+                            >
+                              {t.doneTime || t.time || 'Completed'}
+                            </span>
+                            <IB n="eye" title="View task details" onPress={() => onOpenModal('taskView', t)} />
+                          </div>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: MU, flexWrap: 'wrap' }}>
