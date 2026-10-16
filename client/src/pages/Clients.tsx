@@ -102,84 +102,72 @@ export const Clients: React.FC<ClientsProps> = ({ clients, team, onOpenClient, o
         </B>
       </V>
 
-      {/* Quick Status filter pills with active filters info */}
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, alignItems: 'center' }}>
-        <P
-          onPress={() => setStatusFilter('')}
-          style={{
-            padding: '5px 12px',
-            borderRadius: 20,
-            fontSize: 12,
-            fontWeight: 600,
-            border: '1px solid ' + (!statusFilter ? G : BD),
-            background: !statusFilter ? '#f0fdf4' : '#fff',
-            color: !statusFilter ? G : MU,
-            flexShrink: 0,
-          }}
-        >
-          All
-        </P>
-        {Object.keys(STAT).map((s) => (
-          <P
-            key={s}
-            onPress={() => setStatusFilter(statusFilter === s ? '' : s)}
-            style={{
-              padding: '5px 12px',
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 600,
-              border: '1px solid ' + (statusFilter === s ? STAT[s] : BD),
-              background: statusFilter === s ? STAT[s] + '18' : '#fff',
-              color: statusFilter === s ? STAT[s] : MU,
-              flexShrink: 0,
-            }}
-          >
-            {s}
-          </P>
-        ))}
-        {serviceFilter && (
-          <P
-            onPress={() => setServiceFilter('')}
-            style={{
-              padding: '5px 12px',
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 600,
-              border: '1px solid ' + G,
-              background: '#f0fdf4',
-              color: G,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              flexShrink: 0,
-            }}
-          >
-            <span>Service: {serviceFilter}</span>
-            <I n="x" s={12} />
-          </P>
-        )}
-        {ownerFilter && (
-          <P
-            onPress={() => setOwnerFilter('')}
-            style={{
-              padding: '5px 12px',
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 600,
-              border: '1px solid ' + G,
-              background: '#f0fdf4',
-              color: G,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              flexShrink: 0,
-            }}
-          >
-            <span>Owner: {team.find((u) => u.id === ownerFilter)?.name || ownerFilter}</span>
-            <I n="x" s={12} />
-          </P>
-        )}
-        {activeFilterCount > 0 && (
+      {/* Active filter chips (shown when filters are applied) */}
+      {activeFilterCount > 0 && (
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, alignItems: 'center' }}>
+          {statusFilter && (
+            <P
+              onPress={() => setStatusFilter('')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                border: '1px solid ' + (STAT[statusFilter] || G),
+                background: (STAT[statusFilter] || G) + '18',
+                color: STAT[statusFilter] || G,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                flexShrink: 0,
+              }}
+            >
+              <span>Status: {statusFilter}</span>
+              <I n="x" s={12} />
+            </P>
+          )}
+          {serviceFilter && (
+            <P
+              onPress={() => setServiceFilter('')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                border: '1px solid ' + G,
+                background: '#f0fdf4',
+                color: G,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                flexShrink: 0,
+              }}
+            >
+              <span>Service: {serviceFilter}</span>
+              <I n="x" s={12} />
+            </P>
+          )}
+          {ownerFilter && (
+            <P
+              onPress={() => setOwnerFilter('')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                border: '1px solid ' + G,
+                background: '#f0fdf4',
+                color: G,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                flexShrink: 0,
+              }}
+            >
+              <span>Owner: {team.find((u) => u.id === ownerFilter)?.name || ownerFilter}</span>
+              <I n="x" s={12} />
+            </P>
+          )}
           <P
             onPress={() => {
               setStatusFilter('');
@@ -197,8 +185,8 @@ export const Clients: React.FC<ClientsProps> = ({ clients, team, onOpenClient, o
           >
             Clear all
           </P>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Filter Modal */}
       {filterModalOpen && (
