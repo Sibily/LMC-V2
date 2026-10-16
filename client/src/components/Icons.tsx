@@ -69,7 +69,7 @@ export const I: React.FC<{ n: string; s?: number; style?: React.CSSProperties }>
   </svg>
 );
 
-export const LogoMark: React.FC<{ s?: number; style?: React.CSSProperties }> = ({ s = 32, style }) => (
+export const LogoMark: React.FC<{ s?: number; style?: React.CSSProperties }> = ({ s = 64, style }) => (
   <img
     src="/logo.png"
     alt="Logo"
@@ -85,7 +85,7 @@ export const LogoMark: React.FC<{ s?: number; style?: React.CSSProperties }> = (
   />
 );
 
-export const Logo: React.FC<{ s?: number; style?: React.CSSProperties }> = ({ s = 32, style }) => (
+export const Logo: React.FC<{ s?: number; style?: React.CSSProperties }> = ({ s = 64, style }) => (
   <img
     src="/logo.png"
     alt="Legal Maxims"

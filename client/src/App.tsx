@@ -575,7 +575,7 @@ export const App: React.FC = () => {
   if (loading) {
     return (
       <V style={{ height: '100vh', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-        <Logo s={46} />
+        <Logo s={70} />
         <span style={{ color: MU, fontSize: 14 }}>Loading buzzrdesk…</span>
       </V>
     );
@@ -586,7 +586,7 @@ export const App: React.FC = () => {
     return (
       <V style={{ minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <V style={{ ...card, maxWidth: 380, width: '100%', gap: 16, padding: 28 }}>
-          <Logo s={42} />
+          <Logo s={70} />
           <V style={{ gap: 4 }}>
             <b style={{ fontSize: 18 }}>Welcome to buzzrdesk</b>
             <span style={{ fontSize: 13, color: MU }}>Sign in with your corporate credentials</span>
