@@ -1775,9 +1775,41 @@ export const App: React.FC = () => {
 
       {/* Mobile Floating Plus Menu */}
       {plusMenuOpen && (
-        <div onClick={() => setPlusMenuOpen(false)} style={{ position: 'fixed', inset: 0, background: '#0f172a66', zIndex: 60, display: 'flex', alignItems: 'flex-end' }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', width: '100%', borderRadius: '22px 22px 0 0', padding: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <b style={{ fontSize: 17, marginBottom: 6 }}>Create New</b>
+        <div
+          onClick={() => setPlusMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+            zIndex: 60,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              width: '100%',
+              maxWidth: 380,
+              borderRadius: 20,
+              padding: 20,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              boxShadow: '0 20px 48px rgba(15, 23, 42, 0.28)',
+              animation: 'modalFadeIn 0.16s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <b style={{ fontSize: 18, color: '#0f172a' }}>Create New</b>
+              <IB n="x" s={18} onPress={() => setPlusMenuOpen(false)} />
+            </div>
             {[
               ['Client', 'adduser', () => setActiveModal({ type: 'client' })],
               ['Task', 'task', () => setActiveModal({ type: 'task' })],
@@ -1791,7 +1823,16 @@ export const App: React.FC = () => {
                   setPlusMenuOpen(false);
                   fn();
                 }}
-                style={{ ...R, gap: 12, padding: '12px 8px', fontWeight: 600 }}
+                style={{
+                  ...R,
+                  gap: 12,
+                  padding: '12px 14px',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  borderRadius: 12,
+                  border: '1px solid #f1f5f9',
+                  background: '#f8fafc',
+                }}
               >
                 <I n={ic} s={20} />
                 {l}
