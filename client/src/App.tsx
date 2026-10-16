@@ -117,6 +117,7 @@ export const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'task' | 'rem' | 'client' | 'msg' | 'report'>('all');
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   // Login form state
@@ -950,6 +951,112 @@ export const App: React.FC = () => {
         <div style={{ marginBottom: 14 }}>
           <Logo />
         </div>
+
+        {/* Prototype Desktop + Create Button & Dropdown */}
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+          <P
+            onPress={() => setCreateMenuOpen(!createMenuOpen)}
+            style={{
+              ...R,
+              gap: 10,
+              justifyContent: 'center',
+              padding: '11px 12px',
+              borderRadius: 12,
+              background: G,
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: 15,
+              boxShadow: '0 2px 8px #16a34a40',
+              cursor: 'pointer',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                transform: createMenuOpen ? 'rotate(45deg)' : 'none',
+                transition: 'transform .15s',
+              }}
+            >
+              <I n="plus" s={20} />
+            </div>
+            Create
+          </P>
+
+          {createMenuOpen && (
+            <>
+              <div
+                onClick={() => setCreateMenuOpen(false)}
+                style={{ position: 'fixed', inset: 0, zIndex: 59 }}
+              />
+              <V
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  left: 0,
+                  right: 0,
+                  zIndex: 60,
+                  background: '#fff',
+                  border: '1px solid ' + BD,
+                  borderRadius: 16,
+                  boxShadow: '0 12px 32px #0f172a2e',
+                  padding: 6,
+                }}
+              >
+                {[
+                  ['Add Client', () => setActiveModal({ type: 'client' }), 'adduser', '#16a34a', '#dcfce7'],
+                  ['Add Task', () => setActiveModal({ type: 'task' }), 'task', '#7c3aed', '#ede9fe'],
+                  ['Add Reminder', () => setActiveModal({ type: 'reminder' }), 'bell', '#db2777', '#fce7f3'],
+                  ['Add Note', () => setActiveModal({ type: 'note' }), 'note', '#0284c7', '#e0f2fe'],
+                  [
+                    'Message',
+                    () => {
+                      setNav({ page: 'inbox', params: { broadcast: true } });
+                      setTimeout(() => window.dispatchEvent(new Event('bz-bc')), 0);
+                    },
+                    'chat',
+                    '#0f766e',
+                    '#ccfbf1',
+                  ],
+                ].map(([label, action, icon, color, bg]: any) => (
+                  <P
+                    key={label}
+                    onPress={() => {
+                      setCreateMenuOpen(false);
+                      action();
+                    }}
+                    style={{
+                      ...R,
+                      gap: 12,
+                      padding: '9px 10px',
+                      borderRadius: 12,
+                      fontWeight: 500,
+                      fontSize: 14.5,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 10,
+                        background: bg,
+                        color,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <I n={icon} s={17} />
+                    </div>
+                    {label}
+                  </P>
+                ))}
+              </V>
+            </>
+          )}
+        </div>
+
         {NAV_ITEMS.map(([k, l, ic]) => {
           const on = nav.page === k;
           const openReminders = tasks.filter((t) => t.type === 'Reminder' && !t.done && (isMgmt || t.whoUserId === user.id)).length;
