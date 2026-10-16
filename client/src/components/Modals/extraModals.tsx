@@ -353,6 +353,8 @@ export const CommunicationForm: React.FC<{
   const [fuDate, setFuDate] = useState(comm?.followDate || add(1));
   const [fuTime, setFuTime] = useState(comm?.followTime || '09:00');
   const [fuWhat, setFuWhat] = useState('');
+  const [fuOther, setFuOther] = useState(false);
+  const [fuWhoId, setFuWhoId] = useState(user?.id);
 
   const save = async () => {
     if (!details.trim()) {
@@ -373,6 +375,7 @@ export const CommunicationForm: React.FC<{
           date: fuDate,
           time: fuTime,
           what: fuWhat,
+          whoUserId: fuOther ? fuWhoId : user?.id,
         },
       };
 
@@ -564,6 +567,65 @@ export const CommunicationForm: React.FC<{
                   {l}
                 </P>
               ))}
+            </V>
+
+            {/* Follow-up For (Myself vs Someone else) */}
+            <V style={{ gap: 6 }}>
+              <span style={{ fontSize: 12, color: MU, fontWeight: 600 }}>For</span>
+              <V style={{ flexDirection: 'row', gap: 8 }}>
+                <B
+                  k={!fuOther}
+                  style={{ flex: 1 }}
+                  onPress={() => {
+                    setFuOther(false);
+                    setFuWhoId(user?.id);
+                  }}
+                >
+                  <I n="user" s={16} />Myself
+                </B>
+                <B
+                  k={fuOther}
+                  style={{ flex: 1 }}
+                  onPress={() => {
+                    setFuOther(true);
+                    const firstOther = team.find((u) => u.id !== user?.id);
+                    if (firstOther) setFuWhoId(firstOther.id);
+                  }}
+                >
+                  <I n="users" s={16} />Someone else
+                </B>
+              </V>
+              {fuOther && (
+                <V style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                  {team
+                    .filter((u) => u.id !== user?.id)
+                    .map((u) => {
+                      const on = fuWhoId === u.id;
+                      return (
+                        <P
+                          key={u.id}
+                          onPress={() => setFuWhoId(u.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '5px 12px 5px 6px',
+                            borderRadius: 20,
+                            fontWeight: 600,
+                            fontSize: 13,
+                            border: '1px solid ' + (on ? G : BD),
+                            background: on ? '#f0fdf4' : '#fff',
+                            color: on ? G : MU,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Av n={u.name} s={22} />
+                          {u.name}
+                        </P>
+                      );
+                    })}
+                </V>
+              )}
             </V>
           </V>
         ) : (
