@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { V, R, P, B, IB, Av, card, Pipe, G, MU, BD, STAT, fmt, ago, t12, aed, szF, refLabel } from '../components/Common';
+import { V, R, P, B, IB, Av, card, Pipe, G, MU, BD, STAT, fmt, ago, t12, aed, szF, refLabel, scol } from '../components/Common';
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { Client, Service, Communication, Task } from '../types';
@@ -340,54 +340,104 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
         (activeService ? (
           <V style={{ gap: 12 }}>
             <V style={{ ...card, gap: 12 }}>
-              <div style={{ display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 7, color: G, background: '#dcfce7', padding: '6px 14px 6px 10px', borderRadius: 20 }}>
-                <I n="building" s={16} />
-                <b style={{ fontSize: 15 }}>Client Stage</b>
-              </div>
+              {(() => {
+                const svI = (n: string) => {
+                  const s = (n || '').toLowerCase();
+                  return s.includes('business')
+                    ? 'building'
+                    : s.includes('trademark')
+                    ? 'shield'
+                    : s.includes('pro')
+                    ? 'briefcase'
+                    : s.includes('tax')
+                    ? 'receipt'
+                    : s.includes('visa')
+                    ? 'globe'
+                    : 'task';
+                };
+                const sc = activeService ? scol({ stages: activeService.stagesConfig, cur: activeService.curStageId }) : G;
+                const sortedServices = [...services].sort((a: any, b: any) => {
+                  const aName = (a.stagesConfig as any[])?.find((st: any) => st.id === a.curStageId)?.name || '';
+                  const bName = (b.stagesConfig as any[])?.find((st: any) => st.id === b.curStageId)?.name || '';
+                  return Number(aName.toLowerCase() === 'completed') - Number(bName.toLowerCase() === 'completed');
+                });
+                const serviceIndex = services.indexOf(activeService) + 1;
 
-              <V style={{ gap: 8 }}>
-                <V>
-                  <b>{activeService.name}</b>
-                  <span style={{ fontSize: 12, color: MU }}>{curStageName}</span>
-                </V>
+                return (
+                  <>
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignSelf: 'flex-start',
+                        alignItems: 'center',
+                        gap: 7,
+                        color: sc,
+                        background: sc + '18',
+                        padding: '6px 14px 6px 10px',
+                        borderRadius: 20,
+                        marginBottom: 2,
+                      }}
+                    >
+                      <I n={svI(activeService.name)} s={16} />
+                      <b style={{ fontSize: 15, fontWeight: 650 }}>Client Stage</b>
+                    </div>
 
-                {/* Service pills */}
-                <V style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                  {services.map((s) => {
-                    const on = s.id === activeService.id;
-                    return (
-                      <P
-                        key={s.id}
-                        onPress={() => setSelectedServiceId(s.id)}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: 14,
-                          fontWeight: 700,
-                          fontSize: 13,
-                          background: on ? G : '#f1f5f9',
-                          color: on ? '#fff' : MU,
-                          border: '1px solid ' + (on ? G : BD),
-                        }}
-                      >
-                        {s.name}
-                      </P>
-                    );
-                  })}
-                  <P
-                    title="Add service"
-                    onPress={() => onOpenModal('svc', { clientId: client.id })}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 14,
-                      background: '#fff',
-                      color: MU,
-                      border: '1px dashed #cbd5e1',
-                    }}
-                  >
-                    <I n="plus" s={16} />
-                  </P>
-                </V>
-              </V>
+                    <V style={{ gap: 8 }}>
+                      <V>
+                        <b>{activeService.name}</b>
+                        <span style={{ fontSize: 12, color: MU }}>
+                          {curStageName} · {serviceIndex} of {services.length}
+                        </span>
+                      </V>
+
+                      {/* Service icon buttons */}
+                      <V style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                        {sortedServices.map((s: any) => {
+                          const cc = scol({ stages: s.stagesConfig, cur: s.curStageId });
+                          const on = s.id === activeService.id;
+                          return (
+                            <P
+                              key={s.id}
+                              title={s.name}
+                              onPress={() => setSelectedServiceId(s.id)}
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 700,
+                                fontSize: 13,
+                                background: on ? cc : cc + '22',
+                                color: on ? '#fff' : cc,
+                                border: '2px solid ' + (on ? cc : 'transparent'),
+                              }}
+                            >
+                              <I n={svI(s.name)} s={20} />
+                            </P>
+                          );
+                        })}
+                        <P
+                          title="Add service"
+                          onPress={() => onOpenModal('svc', { clientId: client.id })}
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 12,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#fff',
+                            color: MU,
+                            border: '2px dashed #cbd5e1',
+                          }}
+                        >
+                          <I n="plus" s={20} />
+                        </P>
+                      </V>
+                    </V>
+                  </>
+                );
+              })()}
 
               <Pipe
                 st={activeService.stagesConfig as any[]}
