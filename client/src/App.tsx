@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { V, R, P, B, IB, Av, Logo, F, inp, card, G, MU, BD, TODAY, fmt, t12 } from './components/Common';
+import { V, R, P, B, IB, Av, Logo, F, inp, card, G, MU, BD, TODAY, fmt, t12, Modal } from './components/Common';
 import { I } from './components/Icons';
 import { useAuth } from './context/AuthContext';
 import { api } from './api/client';
@@ -2071,37 +2071,9 @@ const TaskViewModal: React.FC<{ task: Task; onClose: () => void; onSaved: () => 
   };
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: '#0f172a88',
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        zIndex: 50,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: '#fff',
-          width: '100%',
-          maxWidth: 520,
-          borderRadius: '22px 22px 0 0',
-          padding: 16,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <b style={{ fontSize: 16 }}>{task.title}</b>
-          <IB n="x" onPress={onClose} />
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 13 }}>
+    <Modal title={task.title} close={onClose}>
+      <V style={{ gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13, background: '#f8fafc', padding: 12, borderRadius: 12, border: '1px solid #e2e8f0' }}>
           <div>
             <span style={{ color: MU }}>Type:</span> <b>{task.type}</b>
           </div>
@@ -2114,10 +2086,21 @@ const TaskViewModal: React.FC<{ task: Task; onClose: () => void; onSaved: () => 
           <div>
             <span style={{ color: MU }}>Status:</span> <b>{task.done ? 'Completed' : 'To do'}</b>
           </div>
+          {task.client?.name && (
+            <div style={{ gridColumn: 'span 2' }}>
+              <span style={{ color: MU }}>Client:</span> <b>{task.client.name}</b>
+            </div>
+          )}
+          {task.service?.name && (
+            <div style={{ gridColumn: 'span 2' }}>
+              <span style={{ color: MU }}>Service:</span> <b>{task.service.name}</b>
+            </div>
+          )}
         </div>
 
         {task.desc && (
-          <div style={{ fontSize: 13, background: '#f8fafc', padding: 10, borderRadius: 10 }}>
+          <div style={{ fontSize: 13, background: '#f8fafc', padding: 12, borderRadius: 12, border: '1px solid #e2e8f0', color: '#334155' }}>
+            <b style={{ color: '#0f172a', display: 'block', marginBottom: 4 }}>Description</b>
             {task.desc}
           </div>
         )}
@@ -2132,8 +2115,8 @@ const TaskViewModal: React.FC<{ task: Task; onClose: () => void; onSaved: () => 
           />
         </F>
 
-        <V style={{ flexDirection: 'row', gap: 8 }}>
-          <B onPress={handleDelete} style={{ color: '#dc2626' }}>
+        <V style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+          <B onPress={handleDelete} style={{ color: '#dc2626', borderColor: '#fecaca' }}>
             <I n="trash" s={16} />Delete
           </B>
           <B k={1} style={{ flex: 1 }} onPress={handleToggle}>
@@ -2141,7 +2124,7 @@ const TaskViewModal: React.FC<{ task: Task; onClose: () => void; onSaved: () => 
             {task.done ? 'Reopen' : 'Mark Complete'}
           </B>
         </V>
-      </div>
-    </div>
+      </V>
+    </Modal>
   );
 };

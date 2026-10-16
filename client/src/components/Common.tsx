@@ -282,10 +282,10 @@ export const Modal: React.FC<{
         inset: 0,
         background: '#0f172a88',
         display: 'flex',
-        alignItems: isWide ? 'center' : 'flex-end',
+        alignItems: 'center',
         justifyContent: 'center',
         zIndex: 50,
-        padding: isWide ? 16 : 0,
+        padding: 16,
         boxSizing: 'border-box',
       }}
     >
@@ -299,7 +299,7 @@ export const Modal: React.FC<{
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          borderRadius: isWide ? 20 : '22px 22px 0 0',
+          borderRadius: 20,
           boxShadow: '0 20px 48px rgba(15, 23, 42, 0.28)',
           boxSizing: 'border-box',
         }}
