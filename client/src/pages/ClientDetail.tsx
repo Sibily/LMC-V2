@@ -486,6 +486,51 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
                 </B>
               </V>
             </V>
+
+            {/* Full Activity Card matching prototype line 298 */}
+            <V style={{ ...card, gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <I n="history" s={18} />
+                <b>Full Activity</b>
+              </div>
+              {(() => {
+                const allHist = (services || []).flatMap((s: any) =>
+                  (s.history || []).map((x: any) => ({ ...x, sname: s.name, sid: s.id }))
+                ).sort((a: any, b: any) => {
+                  const tA = a.atDate || a.createdAt || '';
+                  const tB = b.atDate || b.createdAt || '';
+                  return tB.localeCompare(tA);
+                });
+
+                if (!allHist.length) {
+                  return <span style={{ fontSize: 13, color: MU }}>No activity recorded yet.</span>;
+                }
+
+                return allHist.slice(0, 8).map((x: any, i: number, arr: any[]) => (
+                  <P
+                    key={x.id || i}
+                    onPress={() => onOpenModal('actlog', { clientId: client.id, serviceId: x.sid, historyId: x.id })}
+                    style={{
+                      flexDirection: 'column',
+                      padding: '10px 0',
+                      borderBottom: i === arr.length - 1 ? 'none' : '1px solid #f1f5f9',
+                      gap: 3,
+                    }}
+                  >
+                    <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                      <b style={{ fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {x.sname} · {x.stageName || 'Stage update'}
+                      </b>
+                      <span style={{ color: G, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>View ›</span>
+                    </V>
+                    <span style={{ fontSize: 13, color: MU }}>{x.note || '—'}</span>
+                    <span style={{ fontSize: 12, color: MU }}>
+                      {x.byUser?.name || 'Team'} · {x.atDate ? fmt(x.atDate) : 'Today'}
+                    </span>
+                  </P>
+                ));
+              })()}
+            </V>
           </V>
         ) : (
           <span style={{ color: MU, padding: '24px 0', textAlign: 'center' }}>No services yet. Add one with + Service.</span>
