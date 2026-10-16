@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
-import { V, R, P, B, IB, Av, card, G, MU, BD, TODAY, add, fmt, t12, EmptyState } from '../components/Common';
+import { V, R, P, B, IB, Av, card, G, MU, BD, TODAY, add, fmt, t12, tcol, EmptyState } from '../components/Common';
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { Task } from '../types';
@@ -301,27 +301,35 @@ export const EmpProfilePage: React.FC<EmpProfilePageProps> = ({
         borderBottom: '1px solid #f1f5f9',
       }}
     >
-      <P
-        onPress={() => toggleTask(t)}
+      <span
         style={{
-          width: 22,
-          height: 22,
-          borderRadius: 11,
-          border: '2px solid ' + (t.done ? G : '#cbd5e1'),
-          background: t.done ? G : '#fff',
-          color: '#fff',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          background: tcol(t.type),
           flexShrink: 0,
         }}
-      >
-        {t.done && <I n="tick" s={14} />}
-      </P>
-      <V style={{ flex: 1, gap: 2 }}>
-        <b style={{ textDecoration: t.done ? 'line-through' : 'none', color: t.done ? MU : '#0f172a' }}>
+      />
+      <V style={{ flex: 1, gap: 2, minWidth: 0 }}>
+        <b
+          style={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            color: '#0f172a',
+          }}
+        >
           {t.title}
         </b>
-        <span style={{ color: MU, fontSize: 12 }}>
+        <span
+          style={{
+            color: MU,
+            fontSize: 12,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {t.client?.name ? t.client.name + ' · ' : ''}
           {t.desc}
         </span>
@@ -337,10 +345,11 @@ export const EmpProfilePage: React.FC<EmpProfilePageProps> = ({
           background: '#f1f5f9',
           padding: '3px 8px',
           borderRadius: 20,
+          flexShrink: 0,
         }}
       >
         <I n="clock" s={11} />
-        {t12(t.time)}
+        {t.done ? fmt(t.doneAt || t.date) : ((t.date === TODAY ? '' : fmt(t.date) + ' · ') + t12(t.time))}
       </span>
       <IB n="eye" onPress={() => onOpenModal('taskView', t)} />
     </V>
