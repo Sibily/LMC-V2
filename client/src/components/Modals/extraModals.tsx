@@ -86,6 +86,19 @@ export const PeopleModal: React.FC<{
 };
 
 // 7. Customize Pipeline
+const FACTORY_STAGES = [
+  { id: 'st_1', name: 'Enquiry', type: 'stage', color: '#64748b' },
+  { id: 'st_2', name: 'Contact / Follow-up', type: 'stage', color: '#0ea5e9' },
+  { id: 'st_3', name: 'Proposal', type: 'stage', color: '#8b5cf6' },
+  { id: 'st_4', name: 'Accepted / Rejected', type: 'decision', yes: 'Accepted', no: 'Rejected', color: '#16a34a' },
+  { id: 'st_5', name: 'Converted', type: 'stage', color: '#14b8a6' },
+  { id: 'st_6', name: 'Execution', type: 'stage', color: '#f59e0b' },
+  { id: 'st_7', name: 'Invoice', type: 'stage', color: '#ec4899' },
+  { id: 'st_8', name: 'Document Collection', type: 'stage', color: '#6366f1' },
+  { id: 'st_9', name: 'Completed', type: 'stage', color: '#22c55e' },
+  { id: 'st_10', name: 'Delivery', type: 'stage', color: '#0891b2' },
+];
+
 export const CustPipelineModal: React.FC<{
   service?: any;
   isDefault?: boolean;
@@ -93,8 +106,29 @@ export const CustPipelineModal: React.FC<{
   onSaved: () => void;
 }> = ({ service, isDefault, onClose, onSaved }) => {
   const { toast } = useAuth();
-  const [stages, setStages] = useState<any[]>(service ? service.stagesConfig : []);
+  const [stages, setStages] = useState<any[]>(service?.stagesConfig || (isDefault ? FACTORY_STAGES : []));
   const [activePickerId, setActivePickerId] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [atPosition, setAtPosition] = useState<string>('end');
+  const [defaultStages, setDefaultStages] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    api.pipelines.getDefault().then((res: any) => {
+      if (mounted && res && res.stagesConfig && Array.isArray(res.stagesConfig) && res.stagesConfig.length > 0) {
+        setDefaultStages(res.stagesConfig);
+        if (isDefault) {
+          setStages(res.stagesConfig);
+        }
+      }
+    }).catch(() => {
+      // Fallback to factory stages if fetch fails
+      if (isDefault && stages.length === 0) {
+        setStages(FACTORY_STAGES);
+      }
+    });
+    return () => { mounted = false; };
+  }, [isDefault]);
 
   const move = (from: number, to: number) => {
     if (to < 0 || to >= stages.length) return;
@@ -103,26 +137,69 @@ export const CustPipelineModal: React.FC<{
     setStages(n);
   };
 
+  const insertStage = (item: any) => {
+    const idx = atPosition === 'end' ? stages.length : stages.findIndex((x) => x.id === atPosition) + 1;
+    const n = [...stages];
+    n.splice(idx, 0, item);
+    setStages(n);
+    setAtPosition(item.id);
+  };
+
   const addNormalStage = () => {
-    const id = 'st_' + Math.random().toString(36).substring(2, 8);
-    setStages([...stages, { id, name: 'New Stage', type: 'stage', color: '#16a34a' }]);
+    const id = 'st_' + Math.random().toString(36).substring(2, 9);
+    insertStage({ id, name: 'New stage', type: 'stage', color: col(stages.length) });
   };
 
   const addDecisionStage = () => {
-    const id = 'dec_' + Math.random().toString(36).substring(2, 8);
-    setStages([
-      ...stages,
-      { id, name: 'Accepted / Rejected', type: 'decision', yes: 'Accepted', no: 'Rejected', color: '#16a34a' },
-    ]);
+    const id = 'dec_' + Math.random().toString(36).substring(2, 9);
+    insertStage({
+      id,
+      name: 'Accepted / Rejected',
+      type: 'decision',
+      yes: 'Accepted',
+      no: 'Rejected',
+      color: '#16a34a',
+    });
+  };
+
+  const resetPipeline = () => {
+    if (isDefault) {
+      setStages(FACTORY_STAGES.map((x) => ({ ...x, id: 'st_' + Math.random().toString(36).substring(2, 9) })));
+      toast('Reset to factory flow');
+    } else {
+      const base = defaultStages.length > 0 ? defaultStages : FACTORY_STAGES;
+      setStages(base.map((x) => ({ ...x, id: 'st_' + Math.random().toString(36).substring(2, 9) })));
+      toast('Reset to default pipeline');
+    }
+  };
+
+  const setAsDefault = async () => {
+    try {
+      const cleaned = stages.map((x) => {
+        const y = { ...x };
+        delete y.res;
+        return y;
+      });
+      await api.pipelines.updateDefault(cleaned);
+      setDefaultStages(cleaned);
+      toast('Saved as your default pipeline');
+    } catch (e: any) {
+      toast(e.message || 'Error saving default pipeline');
+    }
   };
 
   const save = async () => {
     try {
+      const cleaned = stages.map((x) => {
+        const y = { ...x };
+        delete y.res;
+        return y;
+      });
       if (isDefault) {
-        await api.pipelines.updateDefault(stages);
-        toast('Default pipeline updated');
+        await api.pipelines.updateDefault(cleaned);
+        toast('Default pipeline saved · new services will use it');
       } else if (service) {
-        await api.services.customizePipeline(service.id, stages);
+        await api.services.customizePipeline(service.id, cleaned);
         toast('Service pipeline saved');
       }
       onSaved();
@@ -135,14 +212,22 @@ export const CustPipelineModal: React.FC<{
   return (
     <Modal title={isDefault ? 'Default Pipeline' : 'Customize Pipeline'} close={onClose}>
       <V style={{ gap: 10 }}>
-        <span style={{ color: MU, fontSize: 12 }}>
-          {isDefault ? 'New services start with this flow.' : `Applies only to ${service?.name}.`} Reorder stages, pick colors, or add decisions.
+        <span style={{ color: MU, fontSize: 12, lineHeight: 1.45 }}>
+          {isDefault ? 'New services start with this flow. ' : `Applies only to ${service?.name}. `}
+          Tap a dot to change its colour. Drag or use the arrows to set the order. Add a normal stage, or an Accepted / Rejected decision, at any position.
         </span>
 
         {stages.map((x, i) =>
           x.type === 'decision' ? (
             <div
               key={x.id}
+              draggable
+              onDragStart={() => setDragIndex(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (dragIndex != null) move(dragIndex, i);
+                setDragIndex(null);
+              }}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -154,7 +239,7 @@ export const CustPipelineModal: React.FC<{
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ color: MU, display: 'flex' }}>
+                <span style={{ cursor: 'grab', color: MU, display: 'flex' }}>
                   <I n="grip" s={18} />
                 </span>
                 <span style={{ width: 12, height: 12, borderRadius: 4, border: '1.5px dashed #94a3b8', flexShrink: 0 }} />
@@ -164,20 +249,32 @@ export const CustPipelineModal: React.FC<{
                 <IB n="trash" onPress={() => stages.length > 1 && setStages(stages.filter((y) => y.id !== x.id))} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 4px 0 26px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #bbf7d0', borderRadius: 10, padding: '0 10px', background: '#fff' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #bbf7d0', borderRadius: 10, padding: '0 10px', background: '#fff', minWidth: 0 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 4, background: '#16a34a', flexShrink: 0 }} />
                   <input
-                    style={{ border: 0, outline: 'none', padding: '9px 0', flex: 1, background: 'transparent' }}
+                    style={{ border: 0, outline: 'none', padding: '9px 0', flex: 1, minWidth: 0, background: 'transparent' }}
                     value={x.yes || 'Accepted'}
-                    onChange={(e) => setStages(stages.map((y) => (y.id === x.id ? { ...y, yes: e.target.value } : y)))}
+                    onChange={(e) =>
+                      setStages(
+                        stages.map((y) =>
+                          y.id === x.id ? { ...y, yes: e.target.value, name: e.target.value + ' / ' + (y.no || 'Rejected') } : y
+                        )
+                      )
+                    }
                   />
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #fecaca', borderRadius: 10, padding: '0 10px', background: '#fff' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #fecaca', borderRadius: 10, padding: '0 10px', background: '#fff', minWidth: 0 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 4, background: '#ef4444', flexShrink: 0 }} />
                   <input
-                    style={{ border: 0, outline: 'none', padding: '9px 0', flex: 1, background: 'transparent' }}
+                    style={{ border: 0, outline: 'none', padding: '9px 0', flex: 1, minWidth: 0, background: 'transparent' }}
                     value={x.no || 'Rejected'}
-                    onChange={(e) => setStages(stages.map((y) => (y.id === x.id ? { ...y, no: e.target.value } : y)))}
+                    onChange={(e) =>
+                      setStages(
+                        stages.map((y) =>
+                          y.id === x.id ? { ...y, no: e.target.value, name: (y.yes || 'Accepted') + ' / ' + e.target.value } : y
+                        )
+                      )
+                    }
                   />
                 </label>
               </div>
@@ -185,6 +282,13 @@ export const CustPipelineModal: React.FC<{
           ) : (
             <React.Fragment key={x.id}>
               <div
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (dragIndex != null) move(dragIndex, i);
+                  setDragIndex(null);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -195,7 +299,7 @@ export const CustPipelineModal: React.FC<{
                   background: '#fff',
                 }}
               >
-                <span style={{ color: MU, display: 'flex' }}>
+                <span style={{ cursor: 'grab', color: MU, display: 'flex' }}>
                   <I n="grip" s={18} />
                 </span>
                 <P
@@ -203,10 +307,18 @@ export const CustPipelineModal: React.FC<{
                   onPress={() => setActivePickerId(activePickerId === x.id ? null : x.id)}
                   style={{ width: 22, height: 22, flexShrink: 0, alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <span style={{ width: 14, height: 14, borderRadius: 7, background: x.color || col(i) }} />
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 7,
+                      background: x.color || col(i),
+                      boxShadow: activePickerId === x.id ? '0 0 0 3px ' + (x.color || col(i)) + '40' : 'none',
+                    }}
+                  />
                 </P>
                 <input
-                  style={{ ...inp, border: 0, padding: '8px 4px', flex: 1 }}
+                  style={{ ...inp, border: 0, padding: '8px 4px', flex: 1, minWidth: 0 }}
                   value={x.name}
                   onChange={(e) => setStages(stages.map((y) => (y.id === x.id ? { ...y, name: e.target.value } : y)))}
                 />
@@ -223,7 +335,15 @@ export const CustPipelineModal: React.FC<{
                         setStages(stages.map((y) => (y.id === x.id ? { ...y, color: cc } : y)));
                         setActivePickerId(null);
                       }}
-                      style={{ width: 26, height: 26, borderRadius: 13, background: cc, color: '#fff', alignItems: 'center', justifyContent: 'center' }}
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 13,
+                        background: cc,
+                        color: '#fff',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
                     >
                       {(x.color || col(i)) === cc && <I n="tick" s={14} />}
                     </P>
@@ -234,14 +354,35 @@ export const CustPipelineModal: React.FC<{
           )
         )}
 
-        <V style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+        <F l="Add at position">
+          <Sel style={inp} value={atPosition} onChange={(e: any) => setAtPosition(e.target.value)}>
+            <option value="end">At the end</option>
+            {stages.map((x) => (
+              <option key={x.id} value={x.id}>
+                After {x.type === 'decision' ? (x.yes || 'Accepted') + ' / ' + (x.no || 'Rejected') : x.name}
+              </option>
+            ))}
+          </Sel>
+        </F>
+
+        <V style={{ flexDirection: 'row', gap: 8 }}>
           <B style={{ flex: 1 }} onPress={addNormalStage}>
-            <I n="plus" s={16} />Add Stage
+            <I n="plus" s={16} />Add stage
           </B>
           <B style={{ flex: 1, whiteSpace: 'normal', textAlign: 'center' }} onPress={addDecisionStage}>
             <I n="plus" s={16} />Accept / Reject
           </B>
         </V>
+
+        {!isDefault && (
+          <B onPress={setAsDefault}>
+            <I n="tick" s={16} />Set as default pipeline
+          </B>
+        )}
+
+        <B onPress={resetPipeline}>
+          {isDefault ? 'Reset to factory flow' : 'Reset to default pipeline'}
+        </B>
 
         <B k={1} onPress={save}>
           Save Pipeline
