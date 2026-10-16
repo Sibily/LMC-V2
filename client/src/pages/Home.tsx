@@ -234,10 +234,10 @@ export const Home: React.FC<HomeProps> = ({
       </V>
 
       {/* Quick Action Circles */}
-      <V style={{ flexDirection: 'row', gap: 20, padding: '2px 2px 0', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+      <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: '2px 0 0', width: '100%' }}>
         {quickActions.map(({ label, icon, color, action }) => (
-          <P key={label} onPress={action} style={{ flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative', flexShrink: 0 }}>
-            <div style={{ width: 58, height: 58, borderRadius: 29, padding: 3, border: '2px dashed ' + color, display: 'flex' }}>
+          <P key={label} onPress={action} style={{ flexDirection: 'column', alignItems: 'center', gap: 5, position: 'relative', flex: 1, minWidth: 0 }}>
+            <div style={{ width: 50, height: 50, borderRadius: 25, padding: 2.5, border: '2px dashed ' + color, display: 'flex' }}>
               <div
                 style={{
                   flex: 1,
@@ -250,17 +250,17 @@ export const Home: React.FC<HomeProps> = ({
                   position: 'relative',
                 }}
               >
-                <I n={icon} s={22} />
+                <I n={icon} s={20} />
               </div>
             </div>
             <span
               style={{
                 position: 'absolute',
-                right: 0,
-                top: 45,
-                width: 18,
-                height: 18,
-                borderRadius: 9,
+                right: 'calc(50% - 25px)',
+                top: 38,
+                width: 16,
+                height: 16,
+                borderRadius: 8,
                 background: color,
                 color: '#fff',
                 display: 'flex',
@@ -269,9 +269,9 @@ export const Home: React.FC<HomeProps> = ({
                 border: '2px solid #f3f6f4',
               }}
             >
-              <I n="plus" s={12} />
+              <I n="plus" s={10} />
             </span>
-            <span style={{ fontSize: 12, fontWeight: 600, maxWidth: 78, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
               {label}
             </span>
           </P>
