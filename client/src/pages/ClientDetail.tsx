@@ -823,115 +823,175 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
         </V>
       )}
 
-      {/* TAB: Quotations & Invoices */}
+      {/* TAB: Quotations */}
       {tab === 'Quotations' && (
-        <V style={{ gap: 12 }}>
+        <V style={{ gap: 10 }}>
           <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <b>Quotations & Invoices</b>
-            <B k={1} onPress={() => onOpenModal('invoice', { clientId: client.id, services: client.services, existingInvoiceCount: (client.invoices || []).length })}>
+            <b>Quotations & invoices</b>
+            <B
+              k={1}
+              onPress={() =>
+                onOpenModal('invoice', {
+                  clientId: client.id,
+                  services: client.services,
+                  existingInvoiceCount: (client.invoices || []).length,
+                })
+              }
+            >
               <I n="plus" s={16} />Create Invoice
             </B>
           </V>
 
           {/* Financial summary KPI tiles */}
-          {(() => {
+          {(client.invoices || []).length > 0 && (() => {
             const invs = client.invoices || [];
             const outstanding = invs.filter((i) => i.status !== 'Paid').reduce((sum, i) => sum + Number(i.totalAmount || 0), 0);
             const paid = invs.filter((i) => i.status === 'Paid').reduce((sum, i) => sum + Number(i.totalAmount || 0), 0);
 
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={{ background: '#fef3c7', borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <V style={{ background: '#fef3c7', borderRadius: 14, padding: '10px 12px', gap: 2 }}>
                   <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600 }}>Outstanding</span>
                   <b style={{ fontSize: 17, color: '#92400e' }}>{aed(outstanding)}</b>
-                </div>
-                <div style={{ background: '#dcfce7', borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                </V>
+                <V style={{ background: '#dcfce7', borderRadius: 14, padding: '10px 12px', gap: 2 }}>
                   <span style={{ fontSize: 12, color: '#166534', fontWeight: 600 }}>Paid</span>
                   <b style={{ fontSize: 17, color: '#166534' }}>{aed(paid)}</b>
-                </div>
+                </V>
               </div>
             );
           })()}
 
           {/* Pending Service Proposals */}
           {services.some((s) => (s.stagesConfig as any[]).find((st) => st.id === s.curStageId)?.name?.toLowerCase().includes('proposal')) && (
-            <V style={{ ...card, gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase' }}>Pending Proposals</span>
+            <V style={card}>
+              <b>Pending quotations</b>
               {services
                 .filter((s) => {
                   const curStage = (s.stagesConfig as any[]).find((st) => st.id === s.curStageId);
                   return curStage?.name?.toLowerCase().includes('proposal');
                 })
                 .map((s) => (
-                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
-                    <b>{s.name}</b>
-                    <span style={{ color: '#8b5cf6', fontWeight: 600, fontSize: 13 }}>Proposal pending</span>
+                  <div
+                    key={s.id}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                      padding: '8px 0',
+                      borderBottom: '1px solid #f1f5f9',
+                    }}
+                  >
+                    <span style={{ color: MU }}>{s.name}</span>
+                    <b style={{ textAlign: 'right' }}>Proposal pending</b>
                   </div>
                 ))}
             </V>
           )}
 
           {/* Invoices List */}
-          {(client.invoices || []).length > 0 ? (
-            <V style={{ gap: 8 }}>
-              {(client.invoices || []).map((inv) => {
-                const isPaid = inv.status === 'Paid';
-                const isOverdue = inv.status === 'Overdue';
-                const statusBg = isPaid ? '#dcfce7' : isOverdue ? '#fee2e2' : '#fef3c7';
-                const statusColor = isPaid ? '#15803d' : isOverdue ? '#b91c1c' : '#b45309';
+          {(client.invoices || []).map((inv) => {
+            const isPaid = inv.status === 'Paid';
+            const isOverdue = inv.dueDate && inv.dueDate < todayStr && !isPaid;
+            const st = isPaid
+              ? ['Paid', '#15803d', '#dcfce7']
+              : isOverdue
+              ? ['Overdue', '#dc2626', '#fee2e2']
+              : inv.status === 'Sent'
+              ? ['Sent', '#1d4ed8', '#dbeafe']
+              : ['Draft', '#475569', '#f1f5f9'];
 
-                return (
-                  <div
-                    key={inv.id}
+            return (
+              <P
+                key={inv.id}
+                onPress={() =>
+                  onOpenModal('invoice', {
+                    clientId: client.id,
+                    invoice: inv,
+                    services: client.services,
+                    existingInvoiceCount: (client.invoices || []).length,
+                  })
+                }
+                style={{
+                  ...card,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                }}
+              >
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
+                    background: '#fef3c7',
+                    color: '#b45309',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <I n="receipt" s={20} />
+                </div>
+                <V style={{ flex: 1, gap: 2 }}>
+                  <b>{inv.invoiceNo}</b>
+                  <span
                     style={{
-                      ...card,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 12,
-                      padding: '12px 14px',
+                      fontSize: 12.5,
+                      color: MU,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <b style={{ fontSize: 15, color: '#0f172a' }}>{inv.invoiceNo}</b>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '2px 8px',
-                            borderRadius: 12,
-                            background: statusBg,
-                            color: statusColor,
-                          }}
-                        >
-                          {inv.status}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: 13, color: '#334155', marginTop: 2, display: 'block' }}>
-                        {inv.description || inv.service?.name || 'General Legal Fee'}
-                      </span>
-                      <span style={{ fontSize: 11.5, color: MU }}>
-                        Due: {fmt(inv.dueDate)} {inv.vatApplicable ? '· Includes 5% VAT' : ''}
-                      </span>
-                    </div>
+                    {[inv.service?.name || 'General', inv.description].filter(Boolean).join(' · ')}
+                  </span>
+                  <span style={{ fontSize: 11.5, color: st[0] === 'Overdue' ? '#dc2626' : MU }}>
+                    {isPaid ? 'Paid ' + fmt(inv.issuedDate) : 'Due ' + fmt(inv.dueDate)}
+                  </span>
+                </V>
+                <V style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                  <b>{aed(inv.totalAmount)}</b>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: st[1],
+                      background: st[2],
+                      padding: '2px 9px',
+                      borderRadius: 20,
+                    }}
+                  >
+                    {st[0]}
+                  </span>
+                </V>
+              </P>
+            );
+          })}
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                      <b style={{ fontSize: 16, color: '#0f172a' }}>{aed(inv.totalAmount)}</b>
-                      <IB
-                        n="edit"
-                        onPress={() => onOpenModal('invoice', { clientId: client.id, invoice: inv, services: client.services })}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </V>
-          ) : (
-            <V style={{ ...card, padding: 20, alignItems: 'center', gap: 8 }}>
-              <span style={{ color: MU, fontSize: 13 }}>No invoices generated for this client yet.</span>
-            </V>
-          )}
+          {/* Empty State */}
+          {!(client.invoices || []).length &&
+            !services.some((s) => (s.stagesConfig as any[]).find((st) => st.id === s.curStageId)?.name?.toLowerCase().includes('proposal')) && (
+              <V style={{ ...card, padding: 18, alignItems: 'center', gap: 8 }}>
+                <span style={{ color: MU }}>No quotations or invoices yet.</span>
+                <B
+                  k={1}
+                  onPress={() =>
+                    onOpenModal('invoice', {
+                      clientId: client.id,
+                      services: client.services,
+                      existingInvoiceCount: 0,
+                    })
+                  }
+                >
+                  <I n="plus" s={16} />Create first invoice
+                </B>
+              </V>
+            )}
         </V>
       )}
 
