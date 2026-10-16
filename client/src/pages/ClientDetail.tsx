@@ -509,7 +509,13 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
                 return allHist.slice(0, 8).map((x: any, i: number, arr: any[]) => (
                   <P
                     key={x.id || i}
-                    onPress={() => onOpenModal('actlog', { clientId: client.id, serviceId: x.sid, historyId: x.id })}
+                    onPress={() =>
+                      onOpenModal('actlog', {
+                        historyItem: x,
+                        serviceName: x.sname || activeService?.name || 'Service',
+                        clientName: client.name,
+                      })
+                    }
                     style={{
                       flexDirection: 'column',
                       padding: '10px 0',
