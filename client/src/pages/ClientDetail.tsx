@@ -787,50 +787,40 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <IB
+                      n="eye"
+                      title={doc.fileUrl ? "View document" : "Preview document"}
+                      style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid ' + BD }}
+                      onPress={() => {
+                        if (doc.fileUrl) {
+                          window.open(doc.fileUrl, '_blank');
+                        } else {
+                          onOpenModal('doc', { clientId: client.id, doc, services: client.services });
+                        }
+                      }}
+                    />
                     {doc.fileUrl && (
-                      <>
-                        <a
-                          href={doc.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 34,
-                            height: 34,
-                            borderRadius: 8,
-                            background: '#f0fdf4',
-                            border: '1px solid ' + BD,
-                            color: '#15803d',
-                            textDecoration: 'none',
-                          }}
-                          title="View document"
-                        >
-                          <I n="eye" s={16} />
-                        </a>
-                        <a
-                          href={doc.fileUrl}
-                          download={doc.fileName || doc.name}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 34,
-                            height: 34,
-                            borderRadius: 8,
-                            background: '#f1f5f9',
-                            border: '1px solid ' + BD,
-                            color: '#0369a1',
-                            textDecoration: 'none',
-                          }}
-                          title="Download document"
-                        >
-                          <I n="download" s={16} />
-                        </a>
-                      </>
+                      <a
+                        href={doc.fileUrl}
+                        download={doc.fileName || doc.name}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
+                          background: '#f1f5f9',
+                          border: '1px solid ' + BD,
+                          color: '#0369a1',
+                          textDecoration: 'none',
+                        }}
+                        title="Download document"
+                      >
+                        <I n="download" s={16} />
+                      </a>
                     )}
                     <IB
                       n="edit"
