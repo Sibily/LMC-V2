@@ -1168,6 +1168,7 @@ export const App: React.FC = () => {
     pageContent = (
       <RemindersPage
         tasks={tasks}
+        team={team}
         onRefreshTasks={loadAllData}
         onOpenModal={(t, d) => setActiveModal({ type: t, data: d })}
         onNavigate={(p) => setNav({ page: p })}

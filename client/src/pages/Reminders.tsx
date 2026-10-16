@@ -1,358 +1,266 @@
 import React, { useState } from 'react';
-import { V, R, P, B, card, G, MU, BD, TODAY, add, fmt, lbl, t12, EmptyState } from '../components/Common';
+import * as XLSX from 'xlsx';
+import { V, R, P, B, IB, card, G, MU, BD, TODAY, add, fmt, lbl, t12, EmptyState } from '../components/Common';
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { Task } from '../types';
 import { api } from '../api/client';
+import { DateScrubber } from '../components/DateScrubber';
 
 export const RemindersPage: React.FC<{
   tasks: Task[];
+  team?: any[];
   onRefreshTasks: () => void;
   onOpenModal: (type: string, data?: any) => void;
   onNavigate?: (page: string) => void;
-}> = ({ tasks, onRefreshTasks, onOpenModal, onNavigate }) => {
+}> = ({ tasks, team = [], onRefreshTasks, onOpenModal, onNavigate }) => {
   const { user, settings, toast } = useAuth();
   const isMgmt = user?.role === 'management' && settings?.viewMode === 'management';
 
-  const [scope, setScope] = useState<'all' | 'my'>(isMgmt ? 'all' : 'my');
-  const [tab, setTab] = useState<'today' | 'up' | 'past' | 'done'>('today');
+  const [filterUser, setFilterUser] = useState<string>('all');
+  const [tab, setTab] = useState<'today' | 'up' | 'past'>('today');
   const [selectedDate, setSelectedDate] = useState<string>('');
 
-  const nowHM = new Date().toTimeString().slice(0, 5);
-  const wk = add(-7);
-
-  const scopedReminders = tasks.filter((t) => {
+  const displayedReminders = tasks.filter((t) => {
     if (t.type !== 'Reminder') return false;
-    if (!isMgmt || scope === 'my') {
-      return t.whoUserId === user?.id;
-    }
+    if (filterUser !== 'all' && t.whoUserId !== filterUser) return false;
+    if (!isMgmt && t.whoUserId !== user?.id) return false;
     return true;
   });
 
-  const sortT = (a: Task, b: Task) => (a.date + a.time).localeCompare(b.date + b.time);
-  const dsc = (a: Task, b: Task) => ((b.doneAt || '') + (b.doneTime || '')).localeCompare((a.doneAt || '') + (a.doneTime || ''));
+  const todoList = displayedReminders.filter((t) => {
+    if (t.done) return false;
+    if (selectedDate) return t.date === selectedDate || (selectedDate === TODAY && t.date < TODAY);
+    if (tab === 'today') return t.date <= TODAY;
+    if (tab === 'up') return t.date > TODAY;
+    return false;
+  });
 
-  const sets = {
-    today: scopedReminders.filter((t) => t.date === TODAY).sort((a, b) => ((a.done ? 1 : 0) - (b.done ? 1 : 0)) || sortT(a, b)),
-    up: scopedReminders.filter((t) => !t.done && t.date > TODAY).sort(sortT),
-    past: scopedReminders.filter((t) => t.date < TODAY && (t.date >= wk || !t.done)).sort((a, b) => sortT(b, a)),
-    done: scopedReminders.filter((t) => t.done).sort(dsc),
-  };
+  const doneList = displayedReminders.filter((t) => {
+    if (!t.done) return false;
+    if (selectedDate) return (t.doneAt || t.date) === selectedDate;
+    if (tab === 'today') return (t.doneAt || t.date) === TODAY;
+    if (tab === 'past') return (t.doneAt || t.date) < TODAY;
+    return false;
+  });
 
-  const list = selectedDate
-    ? scopedReminders.filter((t) => t.date === selectedDate).sort((a, b) => ((a.done ? 1 : 0) - (b.done ? 1 : 0)) || sortT(a, b))
-    : sets[tab];
-
-  const keyFn = (t: Task) => (tab === 'done' && !selectedDate ? (t.doneAt || t.date) : t.date);
-  const dateGroups = Array.from(new Set(list.map(keyFn)));
-
-  const tabMeta: [keyof typeof sets, string, string][] = [
-    ['today', 'Today', 'cal'],
-    ['up', 'Upcoming', 'clock'],
-    ['past', 'Past', 'history'],
-    ['done', 'Done', 'checks'],
-  ];
-
-  const nm: Record<string, string> = {
-    today: 'Today',
-    up: 'Upcoming',
-    past: 'Past 7 days',
-    done: 'Completed',
-  };
-
-  const em: Record<string, string> = {
-    today: 'Nothing for today',
-    up: 'No upcoming reminders',
-    past: 'Nothing in the last 7 days',
-    done: 'Completed reminders show here',
-  };
-
-  const toggleReminder = async (t: Task) => {
+  const toggleReminder = async (task: Task) => {
     try {
-      await api.tasks.toggle(t.id);
-      toast(t.done ? 'Reminder reopened' : 'Reminder marked done');
+      await api.tasks.toggle(task.id);
+      toast(task.done ? 'Reminder reopened' : 'Reminder marked done');
       onRefreshTasks();
     } catch (e: any) {
       toast('Failed to update reminder');
     }
   };
 
-  // 17 days around today: add(-3) to add(13)
-  const scrubberDays = Array.from({ length: 17 }, (_, i) => add(i - 3));
+  const exportExcel = () => {
+    try {
+      const all = [...todoList, ...doneList];
+      const data = all.map((t) => ({
+        Date: t.done ? t.doneAt || t.date : t.date,
+        Time: t.time,
+        Employee: t.whoUser?.name || 'Unassigned',
+        Reminder: t.title,
+        Client: t.client?.name || 'Personal',
+        Service: t.service?.name || '',
+        Status: t.done ? 'Done' : t.date < TODAY ? 'Overdue' : 'To do',
+        Note: t.doneNote || t.desc || '',
+      }));
 
-  const remRow = (t: Task) => {
-    const isLate = !t.done && (t.date < TODAY || (t.date === TODAY && t.time < nowHM));
-    return (
-      <V key={t.id} style={{ ...R, flexDirection: 'row', gap: 12, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
-        <P
-          onPress={() => toggleReminder(t)}
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: 11,
-            border: '2px solid ' + (t.done ? G : isLate ? '#fca5a5' : '#cbd5e1'),
-            background: t.done ? G : '#fff',
-            color: '#fff',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          {t.done && <I n="tick" s={15} />}
-        </P>
-        <P onPress={() => onOpenModal('taskView', t)} style={{ flex: 1, flexDirection: 'column', gap: 4 }}>
-          <b
-            style={{
-              textDecoration: t.done ? 'line-through' : 'none',
-              color: t.done ? MU : '#0f172a',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {t.title}
-          </b>
-          <V style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 11,
-                fontWeight: 600,
-                color: t.client?.name ? '#1d4ed8' : MU,
-                background: t.client?.name ? '#dbeafe' : '#f1f5f9',
-                padding: '2px 8px',
-                borderRadius: 20,
-              }}
-            >
-              <I n={t.client?.name ? 'users' : 'user'} s={11} />
-              {t.client?.name || 'Me'}
-            </span>
-            {t.service?.name && (
-              <span style={{ fontSize: 11, color: MU }}>
-                {t.service.name}
-              </span>
-            )}
-            {isMgmt && scope === 'all' && t.whoUser?.name && (
-              <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 600 }}>
-                · {t.whoUser.name}
-              </span>
-            )}
-          </V>
-        </P>
-        <V style={{ alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 11,
-              fontWeight: 600,
-              color: t.done ? MU : isLate ? '#dc2626' : '#be185d',
-              background: t.done ? '#f1f5f9' : isLate ? '#fee2e2' : '#fce7f3',
-              padding: '3px 8px',
-              borderRadius: 20,
-            }}
-          >
-            <I n="clock" s={11} />
-            {t.done
-              ? t12(t.doneTime || '')
-              : (t.date === TODAY || t.date < TODAY ? '' : fmt(t.date) + ' · ') + t12(t.time)}
-          </span>
-          {isLate && (
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626' }}>
-              MISSED
-            </span>
-          )}
-        </V>
-      </V>
-    );
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Reminders');
+      XLSX.writeFile(wb, `buzzrdesk-reminders-${selectedDate || tab}.xlsx`);
+      toast('Reminders exported to Excel');
+    } catch (e) {
+      toast('Failed to export Excel');
+    }
   };
+
+  const rrow = (t: Task) => (
+    <V key={t.id} style={{ ...R, flexDirection: 'row', gap: 10, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+      <P
+        onPress={() => toggleReminder(t)}
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 11,
+          border: '2px solid ' + (t.done ? G : '#cbd5e1'),
+          background: t.done ? G : '#fff',
+          color: '#fff',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {t.done && <I n="tick" s={14} />}
+      </P>
+      <V style={{ flex: 1, gap: 2 }}>
+        <b style={{ textDecoration: t.done ? 'line-through' : 'none', color: t.done ? MU : '#0f172a' }}>{t.title}</b>
+        <span style={{ color: MU, fontSize: 12 }}>
+          {isMgmt && t.whoUser?.name ? t.whoUser.name + ' · ' : ''}
+          {t.client?.name ? t.client.name + ' · ' : ''}
+          {t.desc}
+        </span>
+      </V>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          fontSize: 11,
+          fontWeight: 600,
+          color: '#475569',
+          background: '#f1f5f9',
+          padding: '3px 8px',
+          borderRadius: 20,
+        }}
+      >
+        <I n="clock" s={11} />
+        {t12(t.time)}
+      </span>
+      <IB n="eye" onPress={() => onOpenModal('taskView', t)} />
+    </V>
+  );
 
   return (
     <V style={{ gap: 12 }}>
-      {/* Back to Home & Title Row */}
-      {onNavigate && (
-        <P onPress={() => onNavigate('home')} style={{ ...R, gap: 6, color: MU, cursor: 'pointer' }}>
-          <I n="back" s={18} />Back
-        </P>
-      )}
-
+      {/* Top row */}
       <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <b style={{ fontSize: 20 }}>Reminders</b>
-        <B k={1} onPress={() => onOpenModal('reminder')}>
-          <I n="plus" s={16} />Add
-        </B>
+        <b style={{ fontSize: 18 }}>{isMgmt ? 'All Reminders' : 'My Reminders'}</b>
+        <V style={{ flexDirection: 'row', gap: 8 }}>
+          <B onPress={exportExcel} style={{ padding: '8px 12px', color: '#15803d' }}>
+            <I n="download" s={16} />Excel
+          </B>
+          <B k={1} onPress={() => onOpenModal('reminder')}>
+            <I n="plus" s={16} />Add Reminder
+          </B>
+        </V>
       </V>
 
-      {/* Scope Switcher for Management */}
-      {isMgmt && (
-        <V style={{ flexDirection: 'row', gap: 8 }}>
-          {(['all', 'my'] as const).map((s) => (
-            <B key={s} k={scope === s} onPress={() => setScope(s)}>
-              {s === 'all' ? 'All Reminders' : 'My Reminders'}
-            </B>
+      {/* Team member filter for management */}
+      {isMgmt && team && team.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+          <P
+            onPress={() => setFilterUser('all')}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 20,
+              fontSize: 13,
+              fontWeight: 600,
+              border: '1px solid ' + (filterUser === 'all' ? G : BD),
+              background: filterUser === 'all' ? '#f0fdf4' : '#fff',
+              color: filterUser === 'all' ? G : MU,
+            }}
+          >
+            All Team
+          </P>
+          {team.map((u) => (
+            <P
+              key={u.id}
+              onPress={() => setFilterUser(u.id)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 20,
+                fontSize: 13,
+                fontWeight: 600,
+                border: '1px solid ' + (filterUser === u.id ? G : BD),
+                background: filterUser === u.id ? '#f0fdf4' : '#fff',
+                color: filterUser === u.id ? G : MU,
+              }}
+            >
+              {u.name}
+            </P>
           ))}
-        </V>
+        </div>
       )}
 
-      {/* Date Scrubber + Calendar Picker (Above Tabs) */}
-      <V style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flex: 1, minWidth: 0, padding: '2px 0' }}>
-          {scrubberDays.map((d) => {
-            const on = selectedDate === d;
-            const dt = new Date(d + 'T00:00');
-            const has = scopedReminders.some((t) => t.date === d && !t.done);
-            return (
-              <P
-                key={d}
-                onPress={() => setSelectedDate(on ? '' : d)}
-                style={{
-                  flex: '0 0 auto',
-                  width: 46,
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 2,
-                  padding: '8px 0',
-                  borderRadius: 14,
-                  background: on ? G : '#fff',
-                  border: '1px solid ' + (on ? G : d === TODAY ? '#86efac' : BD),
-                  color: on ? '#fff' : '#0f172a',
-                }}
-              >
-                <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.7 }}>
-                  {dt.toLocaleDateString('en-GB', { weekday: 'short' })}
-                </span>
-                <b style={{ fontSize: 16, lineHeight: 1.1 }}>{dt.getDate()}</b>
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: 3,
-                    background: has ? (on ? '#fff' : '#db2777') : 'transparent',
-                  }}
-                />
-              </P>
-            );
-          })}
-        </div>
+      {/* Calendar Scrubber with 2-way slide arrows */}
+      <DateScrubber
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        hasItemsOnDate={(d) => displayedReminders.some((t) => t.date === d && !t.done)}
+        itemDotColor="#15803d"
+      />
 
-        <div
-          style={{
-            position: 'relative',
-            flexShrink: 0,
-            width: 46,
-            height: 62,
-            borderRadius: 14,
-            border: '1px solid ' + (selectedDate && !scrubberDays.includes(selectedDate) ? G : BD),
-            background: '#fff',
-            color: MU,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <I n="cal" s={20} />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
-          />
-        </div>
-      </V>
-
-      {/* Tab Header with Count Badge & Tabs */}
-      <V style={{ gap: 6 }}>
-        <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <b style={{ fontSize: 15 }}>{selectedDate ? fmt(selectedDate) : nm[tab]}</b>
-          <span style={{ background: '#fce7f3', color: '#be185d', fontSize: 12, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>
-            {list.length}
-          </span>
-        </V>
-
-        {/* Tabs: Icons on Mobile, Visible Labels on Desktop */}
-        <V style={{ flexDirection: 'row', gap: 8 }}>
-          {tabMeta.map(([k, lb, ic]) => {
-            const on = tab === k && !selectedDate;
-            const n = k === 'done' || k === 'up' ? sets[k].length : sets[k].filter((t) => !t.done).length;
-            return (
-              <P
-                key={k}
-                title={lb}
-                onPress={() => {
-                  setTab(k);
-                  setSelectedDate('');
-                }}
-                style={{
-                  flex: 1,
-                  height: 44,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  borderRadius: 14,
-                  position: 'relative',
-                  background: on ? G : '#fff',
-                  color: on ? '#fff' : k === 'past' && n > 0 ? '#dc2626' : MU,
-                  border: '1px solid ' + (on ? G : BD),
-                  fontWeight: 600,
-                  fontSize: 13,
-                }}
-              >
-                <I n={ic} s={18} />
-                <span className="tab-label-desktop">{lb}</span>
-                {n > 0 && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: -6,
-                      right: -4,
-                      minWidth: 18,
-                      height: 18,
-                      padding: '0 4px',
-                      borderRadius: 9,
-                      background: k === 'past' ? '#dc2626' : on ? '#fff' : '#0f172a',
-                      color: k === 'past' ? '#fff' : on ? G : '#fff',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: '2px solid #f3f6f4',
-                    }}
-                  >
-                    {n}
-                  </span>
-                )}
-              </P>
-            );
-          })}
-        </V>
-      </V>
-
-      {/* Reminders List grouped by date */}
-      <V style={card}>
-        {dateGroups.map((d) => (
-          <V key={d}>
-            {(tab !== 'today' || selectedDate) && (
-              <V style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, color: MU }}>
-                <I n="cal" s={13} />
-                <span style={{ fontSize: 12, fontWeight: 700 }}>{lbl(d)}</span>
-              </V>
-            )}
-            {list.filter((t) => keyFn(t) === d).map(remRow)}
-          </V>
+      {/* Tabs */}
+      <V style={{ flexDirection: 'row', gap: 8 }}>
+        {[
+          ['today', 'Today', 'cal'],
+          ['up', 'Upcoming', 'clock'],
+          ['past', 'Done Earlier', 'history'],
+        ].map(([k, l, ic]) => (
+          <P
+            key={k}
+            title={l}
+            onPress={() => {
+              setTab(k as any);
+              setSelectedDate('');
+            }}
+            style={{
+              flex: 1,
+              height: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              borderRadius: 14,
+              border: '1px solid ' + (tab === k && !selectedDate ? G : BD),
+              background: tab === k && !selectedDate ? G : '#fff',
+              color: tab === k && !selectedDate ? '#fff' : MU,
+              fontWeight: 600,
+              fontSize: 13,
+            }}
+          >
+            <I n={ic} s={16} />
+            <span className="tab-label-desktop">{l}</span>
+          </P>
         ))}
+      </V>
 
-        {!list.length && (
+      {/* Reminders Lists */}
+      <V style={card}>
+        {todoList.length > 0 && (
+          <V style={{ marginBottom: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              To Do · {todoList.length}
+            </span>
+            {todoList.map(rrow)}
+          </V>
+        )}
+
+        {doneList.length > 0 && (
+          <V>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              Done · {doneList.length}
+            </span>
+            {doneList.map(rrow)}
+          </V>
+        )}
+
+        {!todoList.length && !doneList.length && (
           <EmptyState
-            icon="bell"
-            title={selectedDate ? 'No reminders on this date' : em[tab]}
-            desc="Set reminders for upcoming client follow-ups, document requests, and deadlines."
-            actionLabel="+ Add Reminder"
-            onAction={() => onOpenModal('reminder')}
-            color="#db2777"
+            icon={tab === 'today' ? 'checks' : tab === 'up' ? 'cal' : 'clock'}
+            title={
+              selectedDate
+                ? `No reminders for ${fmt(selectedDate)}`
+                : tab === 'today'
+                ? 'All caught up for today!'
+                : tab === 'up'
+                ? 'No upcoming reminders scheduled'
+                : 'No past reminders found'
+            }
+            desc={
+              selectedDate
+                ? 'There are no pending or completed reminders recorded for this date.'
+                : tab === 'today'
+                ? 'You have completed all pending reminders for today. Great work!'
+                : tab === 'up'
+                ? 'Plan ahead by creating upcoming reminders and follow-ups.'
+                : 'Reminders completed previously will be listed here.'
+            }
+            actionLabel={tab !== 'past' ? '+ Add New Reminder' : undefined}
+            onAction={tab !== 'past' ? () => onOpenModal('reminder') : undefined}
           />
         )}
       </V>
