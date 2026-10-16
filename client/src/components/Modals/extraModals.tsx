@@ -411,6 +411,59 @@ export const CommunicationForm: React.FC<{
             ))}
           </Sel>
         </F>
+        <F l="Other advisors involved (optional)">
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {team
+              .filter((u) => u.id !== byUserId)
+              .map((u) => {
+                const picked = withUserIds.includes(u.name || u.id);
+                return (
+                  <label
+                    key={u.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      border: '1px solid ' + (picked ? G : BD),
+                      borderRadius: 18,
+                      padding: '6px 10px',
+                      background: picked ? '#f0fdf4' : '#fff',
+                      fontSize: 13,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      style={{ display: 'none' }}
+                      checked={picked}
+                      onChange={(e) => {
+                        const val = u.name || u.id;
+                        setWithUserIds((prev) =>
+                          e.target.checked ? [...prev, val] : prev.filter((y) => y !== val)
+                        );
+                      }}
+                    />
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 6,
+                        border: '1.5px solid ' + (picked ? G : '#cbd5e1'),
+                        background: picked ? G : '#fff',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {picked && <I n="tick" s={13} />}
+                    </span>
+                    {u.name}
+                  </label>
+                );
+              })}
+          </div>
+        </F>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <F l="Date">
             <input type="date" style={inp} value={date} onChange={(e) => setDate(e.target.value)} />

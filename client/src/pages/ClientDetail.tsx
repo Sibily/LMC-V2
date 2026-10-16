@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { V, R, P, B, IB, Av, card, Pipe, G, MU, BD, STAT, fmt, ago, t12, aed, szF, refLabel, scol } from '../components/Common';
+import { V, R, P, B, IB, Av, card, Pipe, G, MU, BD, STAT, fmt, ago, t12, aed, szF, refLabel, scol, TODAY } from '../components/Common';
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { Client, Service, Communication, Task } from '../types';
@@ -998,8 +998,8 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
       {/* TAB: Communication */}
       {tab === 'Communication' && (
         <V style={{ gap: 10 }}>
-          <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <b>Communication History</b>
+          <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <b>Communication history</b>
             <B k={1} onPress={() => onOpenModal('comm', { clientId: client.id })}>
               <I n="plus" s={16} />Add Communication
             </B>
@@ -1114,7 +1114,7 @@ const CommunicationList: React.FC<{ clientId: string; onOpenModal: (t: string, d
   clientId,
   onOpenModal,
 }) => {
-  const [comms, setComms] = useState<Communication[]>([]);
+  const [comms, setComms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
@@ -1124,32 +1124,81 @@ const CommunicationList: React.FC<{ clientId: string; onOpenModal: (t: string, d
     });
   }, [clientId]);
 
-  if (loading) return <span>Loading communications...</span>;
-  if (!comms.length) return <span style={{ color: MU, padding: '16px 0' }}>No communication recorded yet.</span>;
+  if (loading) {
+    return (
+      <V style={{ ...card, padding: 18, alignItems: 'center' }}>
+        <span style={{ color: MU }}>Loading communication...</span>
+      </V>
+    );
+  }
+
+  if (!comms.length) {
+    return (
+      <V style={{ ...card, padding: 18, alignItems: 'center', gap: 8 }}>
+        <span style={{ color: MU }}>No communication recorded yet.</span>
+        <B k={1} onPress={() => onOpenModal('comm', { clientId })}>
+          <I n="plus" s={16} />Add first communication
+        </B>
+      </V>
+    );
+  }
+
+  const sorted = comms.slice().sort((a: any, b: any) => {
+    const ao = Number(a.activityOrder) || Date.parse(a.updatedAt || a.loggedAt || a.createdAt || '') || 0;
+    const bo = Number(b.activityOrder) || Date.parse(b.updatedAt || b.loggedAt || b.createdAt || '') || 0;
+    if (bo !== ao) return bo - ao;
+    const at = Date.parse((a.date || '1970-01-01') + 'T' + (a.time || '00:00') + ':00') || 0;
+    const bt = Date.parse((b.date || '1970-01-01') + 'T' + (b.time || '00:00') + ':00') || 0;
+    return bt - at;
+  });
 
   return (
     <V style={{ gap: 8 }}>
-      {comms.map((x) => (
-        <P
-          key={x.id}
-          onPress={() => onOpenModal('comm', { clientId, comm: x })}
-          style={{ ...card, gap: 5, cursor: 'pointer' }}
-        >
-          <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <I n="chat" s={17} />
-            <b>{x.type}</b>
-          </V>
-          <span style={{ fontSize: 12, color: MU }}>
-            {x.byUser?.name || 'Advisor'} · {fmt(x.date)} {x.time}
-          </span>
-          <span style={{ fontSize: 14 }}>{x.details}</span>
-          {x.followDate && (
-            <span style={{ fontSize: 12, color: G, fontWeight: 600 }}>
-              Follow-up · {x.followType}: {fmt(x.followDate)} {x.followTime}
+      {sorted.map((x) => {
+        const commIcon =
+          x.type === 'WhatsApp message'
+            ? 'chat'
+            : x.type === 'Email'
+            ? 'report'
+            : x.type === 'Phone call'
+            ? 'phone'
+            : x.type === 'Meeting'
+            ? 'users'
+            : 'note';
+
+        const withList = Array.isArray(x.withUserIds) ? x.withUserIds : [];
+
+        return (
+          <V
+            key={x.id}
+            onClick={() => onOpenModal('comm', { clientId, comm: x })}
+            title="Tap to edit communication"
+            style={{ ...card, gap: 5, cursor: 'pointer' }}
+          >
+            <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <I n={commIcon} s={17} />
+              <b>{x.type}</b>
+            </V>
+            <span style={{ fontSize: 12, color: MU }}>
+              {x.byUser?.name || 'Advisor'} · {x.date === TODAY ? 'Today' : fmt(x.date)}
+              {x.time ? ' · ' + t12(x.time) : ''}
+              {x.source === 'Manual' ? ' · Manually logged' : ''}
             </span>
-          )}
-        </P>
-      ))}
+            <span style={{ fontSize: 14 }}>{x.details}</span>
+            {withList.length > 0 && (
+              <span style={{ fontSize: 12, color: MU }}>
+                Also involved: {withList.join(', ')}
+              </span>
+            )}
+            {x.followDate && (
+              <span style={{ fontSize: 12, color: G, fontWeight: 600 }}>
+                Follow-up{x.followType ? ' · ' + x.followType : ''}: {fmt(x.followDate)}
+                {x.followTime ? ' · ' + t12(x.followTime) : ''}
+              </span>
+            )}
+          </V>
+        );
+      })}
     </V>
   );
 };
