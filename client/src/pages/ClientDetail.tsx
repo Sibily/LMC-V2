@@ -914,42 +914,98 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
       {/* TAB: Activity */}
       {tab === 'Activity' && (
         <V style={card}>
-          {services
-            .flatMap((s) => (s.history || []).map((x) => ({ ...x, sName: s.name, serviceId: s.id })))
-            .map((h, i) => (
-              <P
-                key={h.id || i}
-                onPress={() => onOpenModal('actlog', { historyItem: h, serviceName: h.sName, clientName: client.name })}
-                style={{
-                  padding: '10px 0',
-                  borderBottom: '1px solid #f1f5f9',
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <b style={{ fontSize: 13.5, color: '#0f172a', display: 'block' }}>
-                    {h.sName} → {h.stageName}
-                  </b>
-                  <span style={{ fontSize: 12, color: MU }}>
-                    {h.atDate} · {h.byUser?.name || 'Team'} · {h.note || '—'}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: MU }}>
-                  {h.acts && h.acts.length > 0 && (
-                    <span style={{ fontSize: 11, background: '#f1f5f9', padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>
-                      {h.acts.length}
-                    </span>
+          {(() => {
+            const allItems = services
+              .flatMap((s) => (s.history || []).map((x) => ({ ...x, sName: s.name, serviceId: s.id })))
+              .sort((a: any, b: any) => {
+                const tA = a.atDate || a.createdAt || '';
+                const tB = b.atDate || b.createdAt || '';
+                return tB.localeCompare(tA);
+              });
+
+            if (!allItems.length) {
+              return (
+                <span style={{ color: MU, padding: '16px 0', textAlign: 'center' }}>
+                  No stage activity recorded yet.
+                </span>
+              );
+            }
+
+            const ACT_CO: Record<string, string> = { Reminder: '#db2777', Task: '#7c3aed', Note: '#0369a1' };
+            const ACT_IC: Record<string, string> = { Reminder: 'bell', Task: 'task', Note: 'note' };
+            const ACT_BG: Record<string, string> = { Reminder: '#fdf2f8', Task: '#f5f3ff', Note: '#e0f2fe' };
+
+            return allItems.map((h: any, i: number, arr: any[]) => {
+              const acts = (h.acts || []).slice();
+              if (h.nextAction && h.followUpDate) {
+                acts.unshift({
+                  id: 'n' + h.id,
+                  kind: 'Reminder',
+                  title: h.nextAction,
+                  who: h.assignedUser?.name,
+                  date: h.followUpDate,
+                  time: h.followUpTime,
+                });
+              }
+
+              return (
+                <P
+                  key={h.id || i}
+                  onPress={() => onOpenModal('actlog', { historyItem: h, serviceName: h.sName, clientName: client.name })}
+                  style={{
+                    flexDirection: 'column',
+                    padding: '10px 0',
+                    borderBottom: i === arr.length - 1 ? 'none' : '1px solid #f1f5f9',
+                    gap: 3,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <b style={{ fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {h.sName} · {h.stageName || 'Stage update'}
+                    </b>
+                    <span style={{ color: G, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>View ›</span>
+                  </V>
+                  <span style={{ fontSize: 13, color: MU }}>{h.note || '—'}</span>
+
+                  {acts.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
+                      {acts.map((item: any, actIdx: number) => {
+                        const kind = item.kind || 'Task';
+                        const co = ACT_CO[kind] || '#7c3aed';
+                        const bg = ACT_BG[kind] || '#f5f3ff';
+                        const ic = ACT_IC[kind] || 'task';
+                        return (
+                          <span
+                            key={item.id || actIdx}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: co,
+                              background: bg,
+                              padding: '3px 8px',
+                              borderRadius: 20,
+                            }}
+                          >
+                            <I n={ic} s={11} />
+                            {kind}
+                            {item.who ? ' → ' + item.who : ''}
+                          </span>
+                        );
+                      })}
+                    </div>
                   )}
-                  <I n="arrow" s={14} />
-                </div>
-              </P>
-            ))}
-          {!services.some((s) => (s.history || []).length) && (
-            <span style={{ color: MU, padding: '16px 0', textAlign: 'center' }}>No stage activity recorded yet.</span>
-          )}
+
+                  <span style={{ fontSize: 12, color: MU }}>
+                    {h.byUser?.name || 'Team'} · {h.atDate ? fmt(h.atDate) : 'Today'}
+                  </span>
+                </P>
+              );
+            });
+          })()}
         </V>
       )}
     </V>

@@ -41,7 +41,19 @@ router.get('/', authMiddleware, async (req: AuthRequest, res) => {
             },
           },
         },
-        services: true,
+        services: {
+          with: {
+            responsibleUser: {
+              columns: { id: true, name: true, email: true },
+            },
+            history: {
+              with: {
+                byUser: { columns: { id: true, name: true } },
+                assignedUser: { columns: { id: true, name: true } },
+              },
+            },
+          },
+        },
         documents: true,
         invoices: true,
       },

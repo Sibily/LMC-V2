@@ -37,6 +37,21 @@ router.post('/client/:clientId', authMiddleware, async (req: AuthRequest, res) =
       stagesConfig: stages,
     }).returning();
 
+    const curStage = stages.find((s: any) => s.id === curStageId) || stages[0];
+    const timeNow = new Date().toTimeString().slice(0, 5);
+
+    // Initial history log entry as in prototype
+    await db.insert(serviceHistory).values({
+      serviceId: newService.id,
+      stageName: curStage?.name || 'Enquiry',
+      note: 'Initial update.',
+      byUserId: respUserId || user.id,
+      atDate: `${today} ${timeNow}`,
+      nextAction: 'Call client',
+      assignUserId: respUserId || user.id,
+      acts: [],
+    });
+
     // Notification
     const [client] = await db.select().from(clients).where(eq(clients.id, clientId));
     const [notif] = await db.insert(notifications).values({
