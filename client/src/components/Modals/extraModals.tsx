@@ -449,12 +449,69 @@ export const CommunicationForm: React.FC<{
               ))}
             </V>
             <F l="What to do">
-              <input style={inp} placeholder="e.g. Call client back" value={fuWhat} onChange={(e) => setFuWhat(e.target.value)} />
+              <input
+                style={inp}
+                placeholder={fuType === 'Call' ? 'e.g. Call client back' : 'e.g. Send documents list'}
+                value={fuWhat}
+                onChange={(e) => setFuWhat(e.target.value)}
+              />
             </F>
+
+            {/* Quick date chips */}
+            <V style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+              {[
+                ['Today', 0],
+                ['Tomorrow', 1],
+                ['3 days', 3],
+                ['1 week', 7],
+              ].map(([l, n]: any) => (
+                <P
+                  key={l}
+                  onPress={() => setFuDate(add(n))}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 20,
+                    fontWeight: 600,
+                    fontSize: 13,
+                    border: '1px solid ' + (fuDate === add(n) ? G : BD),
+                    background: fuDate === add(n) ? '#f0fdf4' : '#fff',
+                    color: fuDate === add(n) ? G : MU,
+                  }}
+                >
+                  {l}
+                </P>
+              ))}
+            </V>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <input type="date" style={inp} value={fuDate} onChange={(e) => setFuDate(e.target.value)} />
               <input type="time" style={inp} value={fuTime} onChange={(e) => setFuTime(e.target.value)} />
             </div>
+
+            {/* Quick time chips */}
+            <V style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+              {[
+                ['Morning', '09:00'],
+                ['Afternoon', '14:00'],
+                ['Evening', '18:00'],
+              ].map(([l, t]) => (
+                <P
+                  key={l}
+                  onPress={() => setFuTime(t)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 20,
+                    fontWeight: 600,
+                    fontSize: 13,
+                    border: '1px solid ' + (fuTime === t ? G : BD),
+                    background: fuTime === t ? '#f0fdf4' : '#fff',
+                    color: fuTime === t ? G : MU,
+                  }}
+                >
+                  {l}
+                </P>
+              ))}
+            </V>
           </V>
         ) : (
           <B onPress={() => setFuEnabled(true)}>

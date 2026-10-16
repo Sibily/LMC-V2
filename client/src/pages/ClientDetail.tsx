@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { V, R, P, B, IB, Av, card, Pipe, G, MU, BD, STAT, fmt, ago, t12, aed, szF, refLabel } from '../components/Common';
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
@@ -26,11 +26,19 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
   const [tab, setTab] = useState<'Overview' | 'Services' | 'Contact' | 'Documents' | 'Quotations' | 'Communication' | 'Activity'>('Overview');
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [isWide, setIsWide] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 900 : true));
+
+  useEffect(() => {
+    const handleResize = () => setIsWide(window.innerWidth >= 900);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const services = client.services || [];
   const activeService = services.find((s) => s.id === selectedServiceId) || services[0];
   const clientTasks = tasks.filter((t) => t.clientId === client.id);
-  const clientReminders = clientTasks.filter((t) => t.type === 'Reminder' && !t.done);
+  const sortT = (a: Task, b: Task) => (a.date + a.time).localeCompare(b.date + b.time);
+  const clientReminders = clientTasks.filter((t) => t.type === 'Reminder' && !t.done).sort(sortT);
 
   const tabs = ['Overview', 'Services', 'Contact', 'Documents', 'Quotations', 'Communication', 'Activity'] as const;
   const TI: Record<string, string> = {
@@ -54,15 +62,106 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
     }
   };
 
+  const togRem = async (t: Task) => {
+    try {
+      await api.tasks.toggle(t.id);
+      onRefreshClient();
+      toast(t.done ? 'Reopened' : (t.type === 'Reminder' ? 'Reminder done · see Completed' : 'Done'));
+    } catch (e: any) {
+      toast('Failed to update reminder');
+    }
+  };
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const nowHM = new Date().toTimeString().slice(0, 5);
+
+  const remRow = (t: Task) => {
+    const late = !t.done && (t.date < todayStr || (t.date === todayStr && t.time < nowHM));
+    return (
+      <V key={t.id} style={{ ...R, flexDirection: 'row', gap: 12, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+        <P
+          onPress={() => togRem(t)}
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            border: '2px solid ' + (t.done ? G : late ? '#fca5a5' : '#cbd5e1'),
+            background: t.done ? G : '#fff',
+            color: '#fff',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {t.done && <I n="tick" s={15} />}
+        </P>
+        <P onPress={() => onOpenModal('tview', { id: t.id })} style={{ flex: 1, flexDirection: 'column', gap: 4 }}>
+          <b
+            style={{
+              textDecoration: t.done ? 'line-through' : 'none',
+              color: t.done ? MU : '#0f172a',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.title}
+          </b>
+          <V style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                color: client.name ? '#1d4ed8' : MU,
+                background: client.name ? '#dbeafe' : '#f1f5f9',
+                padding: '2px 8px',
+                borderRadius: 20,
+              }}
+            >
+              <I n={client.name ? 'users' : 'user'} s={11} />
+              {client.name || 'Me'}
+            </span>
+            {t.service?.name && (
+              <span style={{ fontSize: 11, color: MU }}>
+                {t.service.name}
+              </span>
+            )}
+          </V>
+        </P>
+        <V style={{ alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              fontWeight: 600,
+              color: t.done ? MU : late ? '#dc2626' : '#be185d',
+              background: t.done ? '#f1f5f9' : late ? '#fee2e2' : '#fce7f3',
+              padding: '3px 8px',
+              borderRadius: 20,
+            }}
+          >
+            <I n="clock" s={11} />
+            {t.done ? t12(t.doneTime || '') : ((t.date === todayStr || t.date < todayStr ? '' : fmt(t.date) + ' · ') + t12(t.time))}
+          </span>
+          {late && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626' }}>MISSED</span>}
+        </V>
+      </V>
+    );
+  };
+
   const curStageName = activeService
     ? (activeService.stagesConfig as any[]).find((st) => st.id === activeService.curStageId)?.name || 'Enquiry'
     : 'No services';
 
-  const pendingDecisionIndex = activeService
-    ? (activeService.stagesConfig as any[]).findIndex((s) => s.type === 'decision' && s.res !== 'yes')
-    : -1;
-
-  const decisionStage = pendingDecisionIndex >= 0 ? (activeService?.stagesConfig as any[])[pendingDecisionIndex] : null;
+  const stages = (activeService?.stagesConfig as any[]) || [];
+  const ci = activeService ? stages.findIndex((x) => x.id === activeService.curStageId) : 0;
+  const di = activeService ? stages.findIndex((x) => x.type === 'decision' && x.res !== 'yes') : -1;
+  const decisionStage = di >= 0 ? stages[di] : null;
 
   return (
     <V style={{ gap: 12 }}>
@@ -187,106 +286,59 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
             ))}
           </V>
         )}
-      </V>
-
-      {/* Tabs Row */}
-      <V style={{ flexDirection: 'row', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
-        {tabs.map((t) => (
-          <P
-            key={t}
-            onPress={() => setTab(t)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 20,
-              fontWeight: 600,
-              fontSize: 13,
-              whiteSpace: 'nowrap',
-              background: tab === t ? G : '#fff',
-              color: tab === t ? '#fff' : MU,
-              border: '1px solid ' + (tab === t ? G : BD),
-            }}
-          >
-            {t}
-          </P>
-        ))}
-      </V>
+      </V>      {/* Tabs Row */}
+      {isWide ? (
+        <V style={{ flexDirection: 'row', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
+          {tabs.map((t) => (
+            <P
+              key={t}
+              onPress={() => setTab(t)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 20,
+                fontWeight: 600,
+                fontSize: 13,
+                whiteSpace: 'nowrap',
+                background: tab === t ? G : '#fff',
+                color: tab === t ? '#fff' : MU,
+                border: '1px solid ' + (tab === t ? G : BD),
+              }}
+            >
+              {t}
+            </P>
+          ))}
+        </V>
+      ) : (
+        <V style={{ gap: 6 }}>
+          <b style={{ fontSize: 13, color: G }}>{tab}</b>
+          <V style={{ flexDirection: 'row', gap: 6 }}>
+            {tabs.map((t) => (
+              <P
+                key={t}
+                title={t}
+                onPress={() => setTab(t)}
+                style={{
+                  flex: 1,
+                  height: 42,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 12,
+                  background: tab === t ? G : '#fff',
+                  color: tab === t ? '#fff' : MU,
+                  border: '1px solid ' + (tab === t ? G : BD),
+                }}
+              >
+                <I n={TI[t]} s={18} />
+              </P>
+            ))}
+          </V>
+        </V>
+      )}
 
       {/* TAB: Overview */}
       {tab === 'Overview' &&
         (activeService ? (
           <V style={{ gap: 12 }}>
-            {decisionStage && (
-              <div
-                style={{
-                  background: '#fffbeb',
-                  border: '1.5px solid #fde68a',
-                  borderRadius: 16,
-                  padding: '14px 16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.1)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 18,
-                      background: '#fef3c7',
-                      color: '#b45309',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <I n="alert" s={20} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <b style={{ fontSize: 15, color: '#92400e', display: 'block' }}>
-                      Decision Required: {decisionStage.name}
-                    </b>
-                    <span style={{ fontSize: 12, color: '#b45309' }}>
-                      Client approval or decision is pending for {activeService.name}.
-                    </span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <B
-                    k={1}
-                    onPress={() => onOpenModal('decide', { client, service: activeService, decisionStageId: decisionStage.id })}
-                    style={{
-                      flex: 1,
-                      minWidth: 120,
-                      background: '#16a34a',
-                      borderColor: '#16a34a',
-                      color: '#fff',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <I n="tick" s={16} />
-                    {decisionStage.yes} (Proceed)
-                  </B>
-                  <B
-                    onPress={() => onOpenModal('decide', { client, service: activeService, decisionStageId: decisionStage.id })}
-                    style={{
-                      flex: 1,
-                      minWidth: 120,
-                      background: '#fff',
-                      borderColor: '#fca5a5',
-                      color: '#dc2626',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <I n="x" s={16} />
-                    {decisionStage.no} (Decline)
-                  </B>
-                </div>
-              </div>
-            )}
-
             <V style={{ ...card, gap: 12 }}>
               <div style={{ display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 7, color: G, background: '#dcfce7', padding: '6px 14px 6px 10px', borderRadius: 20 }}>
                 <I n="building" s={16} />
@@ -340,7 +392,7 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
               <Pipe
                 st={activeService.stagesConfig as any[]}
                 cur={activeService.curStageId}
-                pick={(s) => {
+                pick={(s: any) => {
                   if (s.type === 'decision') {
                     onOpenModal('decide', { client, service: activeService, decisionStageId: s.id });
                   } else {
@@ -368,60 +420,43 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
                 <span style={{ color: MU }}>Next Action</span>
                 <b>{activeService.nextAction || '—'}</b>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
                 <span style={{ color: MU }}>Last update</span>
                 <b>{activeService.updDate ? fmt(activeService.updDate) + ' · ' + ago(activeService.updDate) : '—'}</b>
               </div>
-
-              {/* Advance to Next Stage Button */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+                <span style={{ color: MU }}>Last note</span>
+                <b>{(activeService.history && activeService.history.length > 0 ? activeService.history[activeService.history.length - 1]?.note : '') || '—'}</b>
+              </div>
               {(() => {
-                const currentStages = (activeService?.stagesConfig as any[]) || [];
-                const curIdx = currentStages.findIndex((s) => s.id === activeService?.curStageId);
-                const nxt = curIdx >= 0 && curIdx < currentStages.length - 1 ? currentStages[curIdx + 1] : null;
-
-                if (nxt) {
-                  return (
-                    <B
-                      k={1}
-                      onPress={() => {
-                        if (nxt.type === 'decision') {
-                          onOpenModal('decide', { client, service: activeService, decisionStageId: nxt.id });
-                        } else {
-                          onOpenModal('stage', { client, service: activeService, stageId: nxt.id });
-                        }
-                      }}
-                      style={{
-                        marginTop: 10,
-                        padding: '11px 16px',
-                        justifyContent: 'center',
-                        fontSize: 14,
-                        boxShadow: '0 2px 8px #16a34a33',
-                      }}
-                    >
-                      Advance to: {nxt.name} →
-                    </B>
-                  );
-                }
+                const nextRem = clientReminders
+                  .filter((t) => !t.service || t.service.id === activeService.id || t.service.name === activeService.name)
+                  .sort(sortT)[0];
                 return (
-                  <div
-                    style={{
-                      marginTop: 10,
-                      padding: '8px 12px',
-                      background: '#dcfce7',
-                      color: '#166534',
-                      borderRadius: 10,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <I n="tick" s={16} /> All Service Stages Completed
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+                    <span style={{ color: MU }}>Next reminder</span>
+                    <b>{nextRem ? fmt(nextRem.date) + ' · ' + t12(nextRem.time) : 'None set'}</b>
                   </div>
                 );
               })()}
+            </V>
+
+            {/* Reminders Card */}
+            <V style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <I n="bell" s={18} />
+                  <b>Reminders</b>
+                </div>
+                <span style={{ background: '#f1f5f9', color: MU, fontSize: 12, fontWeight: 600, padding: '2px 9px', borderRadius: 20 }}>
+                  {clientReminders.length}
+                </span>
+              </div>
+              {clientReminders.length > 0 ? (
+                clientReminders.map(remRow)
+              ) : (
+                <span style={{ color: MU, padding: '10px 0' }}>No reminders for this client.</span>
+              )}
             </V>
 
             {/* Quick Actions */}
@@ -434,7 +469,7 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
                 <B k={1} onPress={() => onOpenModal('stage', { client, service: activeService })}>
                   <I n="edit" s={16} />Update Stage
                 </B>
-                {decisionStage && (
+                {di >= 0 && ci >= di - 1 && decisionStage && (
                   <B
                     onPress={() => onOpenModal('decide', { client, service: activeService, decisionStageId: decisionStage.id })}
                     style={{ borderColor: '#16a34a', color: '#166534', background: '#f0fdf4' }}
@@ -450,31 +485,6 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
                   <I n="task" s={16} />Task
                 </B>
               </V>
-            </V>
-
-            {/* Reminders Card */}
-            <V style={card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <I n="bell" s={18} />
-                  <b>Reminders</b>
-                </div>
-                <span style={{ background: '#f1f5f9', color: MU, fontSize: 12, fontWeight: 600, padding: '2px 9px', borderRadius: 20 }}>
-                  {clientReminders.length}
-                </span>
-              </div>
-              {clientReminders.length ? (
-                clientReminders.map((t) => (
-                  <V key={t.id} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                    <b>{t.title}</b>
-                    <span style={{ fontSize: 12, color: MU }}>
-                      {fmt(t.date)} · {t12(t.time)}
-                    </span>
-                  </V>
-                ))
-              ) : (
-                <span style={{ color: MU, padding: '10px 0' }}>No reminders for this client.</span>
-              )}
             </V>
           </V>
         ) : (

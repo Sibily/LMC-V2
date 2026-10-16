@@ -26,6 +26,7 @@ import { InvoiceFormModal } from './components/Modals/InvoiceFormModal';
 import { DeleteClientConfirmModal, DeletedClientProfileModal, PermanentDeleteConfirmModal } from './components/Modals/ClientDeleteModals';
 import { ActLogModal } from './components/Modals/ActLogModal';
 import { CredFormModal } from './components/Modals/CredFormModal';
+import { ReminderFormModal } from './components/Modals/ReminderFormModal';
 
 // Routing Helpers for Hash-based deep linking
 function parseHash(): { page: string; id?: string; params?: any } {
@@ -107,6 +108,7 @@ export const App: React.FC = () => {
   const mobileSearchRef = useRef<HTMLInputElement>(null);
   const pendingNotifKeysRef = useRef<Set<string>>(new Set());
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'task' | 'rem' | 'client' | 'msg' | 'report'>('all');
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -1058,111 +1060,6 @@ export const App: React.FC = () => {
             </span>
           )}
 
-          {/* Desktop Anchored Dropdown Popover */}
-          {wide && notificationsOpen && (
-            <>
-              <div
-                onClick={() => setNotificationsOpen(false)}
-                style={{ position: 'fixed', inset: 0, zIndex: 40 }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 8px)',
-                  right: 0,
-                  width: 380,
-                  maxHeight: 480,
-                  background: '#fff',
-                  borderRadius: 16,
-                  border: '1px solid ' + BD,
-                  boxShadow: '0 16px 40px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(15, 23, 42, 0.06)',
-                  zIndex: 50,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  animation: 'modalFadeIn 0.16s ease',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #f1f5f9',
-                    background: '#fff',
-                  }}
-                >
-                  <b style={{ fontSize: 15, color: '#0f172a' }}>Notifications ({visibleNotifications.length})</b>
-                  {unreadNotifs.length > 0 && (
-                    <P
-                      onPress={async () => {
-                        const unreadIds = unreadNotifs.map((n) => n.id);
-                        await api.notifs.markAllRead({ ids: unreadIds });
-                        setNotifications((prev) =>
-                          prev.map((n) => (unreadIds.includes(n.id) ? { ...n, read: true } : n))
-                        );
-                        toast('Notifications marked read');
-                      }}
-                      style={{ color: G, fontWeight: 700, fontSize: 12 }}
-                    >
-                      Mark all read
-                    </P>
-                  )}
-                </div>
-
-                <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
-                  {visibleNotifications.map((n) => (
-                    <P
-                      key={n.id}
-                      onPress={() => handleNotificationClick(n)}
-                      style={{
-                        flexDirection: 'row',
-                        gap: 10,
-                        padding: '10px 12px',
-                        borderRadius: 12,
-                        background: n.read ? '#fff' : '#f0fdf4',
-                        border: '1px solid ' + (n.read ? 'transparent' : '#bbf7d0'),
-                        marginBottom: 4,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 16,
-                          background: n.color + '1a',
-                          color: n.color,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <I n={n.icon} s={16} />
-                      </div>
-                      <V style={{ flex: 1, minWidth: 0 }}>
-                        <b style={{ fontSize: 13, color: '#0f172a' }}>{n.title}</b>
-                        <span style={{ fontSize: 11, color: MU, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {n.subtitle}
-                        </span>
-                      </V>
-                      {!n.read && (
-                        <span style={{ width: 7, height: 7, borderRadius: 4, background: G, alignSelf: 'center', flexShrink: 0 }} />
-                      )}
-                    </P>
-                  ))}
-
-                  {!visibleNotifications.length && (
-                    <div style={{ textAlign: 'center', padding: '36px 0', color: MU, fontSize: 13 }}>
-                      You have no notifications.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>
@@ -1343,6 +1240,7 @@ export const App: React.FC = () => {
         notes={notes}
         onNavigate={(p, params) => setNav({ page: p, params })}
         onOpenModal={(t, d) => setActiveModal({ type: t, data: d })}
+        onRefreshTasks={loadAllData}
       />
     );
   } else if (nav.page === 'clients') {
@@ -1398,6 +1296,7 @@ export const App: React.FC = () => {
       <NotesPage
         notes={notes}
         onOpenModal={(t, d) => setActiveModal({ type: t, data: d })}
+        onNavigate={(p) => setNav({ page: p })}
       />
     );
   } else if (nav.page === 'reports') {
@@ -1428,110 +1327,253 @@ export const App: React.FC = () => {
 
 
 
-  // Mobile Notifications Drawer (only for !wide)
-  const notificationsDrawer = !wide && notificationsOpen && (
-    <div
-      onClick={() => setNotificationsOpen(false)}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 75,
-        background: 'rgba(15, 23, 42, 0.6)',
-        backdropFilter: 'blur(3px)',
-        display: 'flex',
-        alignItems: 'flex-end',
-      }}
-    >
+  // Notifications Drawer matching prototype (Right slide-over on wide, bottom sheet on mobile)
+  const notificationsDrawer = notificationsOpen && (() => {
+    // Filter list by category or unread
+    const list = visibleNotifications.filter((n) => {
+      if (notifFilter === 'all') return true;
+      if (notifFilter === 'unread') return !n.read;
+      if (notifFilter === 'task') return n.category === 'task' || n.keyType === 'task' || n.keyType === 'task_due' || n.keyType === 'task_overdue';
+      if (notifFilter === 'rem') return n.category === 'rem' || n.icon === 'bell';
+      if (notifFilter === 'client') return n.category === 'client' || n.keyType === 'client';
+      if (notifFilter === 'msg') return n.category === 'msg' || n.keyType === 'chat';
+      if (notifFilter === 'report') return n.category === 'report' || n.keyType === 'report';
+      return true;
+    });
+
+    const dayOf = (n: NotificationItem) => {
+      if (!n.createdAt) return 0;
+      const d0 = new Date();
+      d0.setHours(0, 0, 0, 0);
+      return Math.max(0, Math.round((d0.getTime() - new Date(n.createdAt).setHours(0, 0, 0, 0)) / 864e5));
+    };
+
+    const agoN = (t: string | undefined) => {
+      if (!t) return '';
+      const mn = Math.floor((Date.now() - new Date(t).getTime()) / 60000);
+      return mn < 1 ? 'Just now' : mn < 60 ? mn + 'm ago' : mn < 1440 ? Math.floor(mn / 60) + 'h ago' : mn < 2880 ? 'Yesterday' : fmt(new Date(t).toISOString().slice(0, 10));
+    };
+
+    const groups: [string, (d: number) => boolean][] = [
+      ['TODAY', (x) => x === 0],
+      ['YESTERDAY', (x) => x === 1],
+      ['EARLIER', (x) => x >= 2],
+    ];
+    const groupedItems = groups
+      .map(([l, fn]) => [l, list.filter((n) => fn(dayOf(n)))] as [string, NotificationItem[]])
+      .filter((x) => x[1].length > 0);
+
+    const filterOptions: [typeof notifFilter, string][] = [
+      ['all', 'All'],
+      ['unread', 'Unread'],
+      ['task', 'Tasks'],
+      ['rem', 'Reminders'],
+      ['client', 'Clients'],
+      ['msg', 'Messages'],
+      ['report', 'Reports'],
+    ];
+
+    const clearAll = async () => {
+      const unreadIds = unreadNotifs.map((n) => n.id);
+      if (unreadIds.length > 0) {
+        await api.notifs.markAllRead({ ids: unreadIds });
+        setNotifications((prev) =>
+          prev.map((n) => (unreadIds.includes(n.id) ? { ...n, read: true } : n))
+        );
+      }
+      toast('Unread count cleared · notification history kept');
+    };
+
+    return (
       <div
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setNotificationsOpen(false);
+        }}
         style={{
-          background: '#fff',
-          width: '100%',
-          maxHeight: '82vh',
-          borderRadius: '20px 20px 0 0',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 75,
+          background: wide ? 'rgba(15,23,42,.20)' : '#f3f6f4',
           display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'modalFadeIn 0.18s ease',
+          flexDirection: wide ? 'row' : 'column',
+          justifyContent: wide ? 'flex-end' : 'initial',
         }}
       >
         <div
           style={{
-            background: '#fff',
-            borderBottom: '1px solid ' + BD,
-            padding: '12px 16px',
+            width: wide ? 'min(430px, 36vw)' : '100%',
+            height: '100%',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            flexDirection: 'column',
+            background: '#f3f6f4',
+            boxShadow: wide ? '-14px 0 40px rgba(15,23,42,.14)' : 'none',
+            borderLeft: wide ? '1px solid ' + BD : 'none',
           }}
         >
-          <b style={{ fontSize: 16 }}>Notifications ({visibleNotifications.length})</b>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {unreadNotifs.length > 0 && (
+          {/* Header */}
+          <div
+            style={{
+              background: '#fff',
+              borderBottom: '1px solid ' + BD,
+              padding: 'calc(10px + env(safe-area-inset-top,0px)) 8px 0',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingBottom: 8 }}>
               <P
-                onPress={async () => {
-                  const unreadIds = unreadNotifs.map((n) => n.id);
-                  await api.notifs.markAllRead({ ids: unreadIds });
-                  setNotifications((prev) =>
-                    prev.map((n) => (unreadIds.includes(n.id) ? { ...n, read: true } : n))
-                  );
-                  toast('Notifications marked read');
-                }}
-                style={{ color: G, fontWeight: 700, fontSize: 12 }}
+                onPress={() => setNotificationsOpen(false)}
+                style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center', color: '#334155' }}
               >
-                Mark all read
+                <I n="back" s={22} />
               </P>
-            )}
-            <IB n="x" onPress={() => setNotificationsOpen(false)} />
-          </div>
-        </div>
+              <b style={{ fontSize: 20, flex: 1 }}>
+                Notifications{unreadNotifs.length > 0 ? ` (${unreadNotifs.length})` : ''}
+              </b>
+              {visibleNotifications.length > 0 && (
+                <P
+                  onPress={clearAll}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    color: '#15803d',
+                    background: '#dcfce7',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: 10,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    padding: '7px 10px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12.5l4 4L19 6.5" />
+                  </svg>
+                  Clear
+                </P>
+              )}
+            </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-          {visibleNotifications.map((n) => (
-            <P
-              key={n.id}
-              onPress={() => handleNotificationClick(n)}
-              style={{
-                flexDirection: 'row',
-                gap: 12,
-                padding: 12,
-                borderRadius: 14,
-                background: n.read ? '#fff' : '#f0fdf4',
-                border: '1px solid ' + (n.read ? BD : '#bbf7d0'),
-                marginBottom: 8,
-                cursor: 'pointer',
-              }}
-            >
+            {/* Filter Strip */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 4px 10px', minWidth: 0 }}>
               <div
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
-                  background: n.color + '1a',
-                  color: n.color,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  gap: 8,
+                  overflowX: 'auto',
+                  padding: '0 4px',
+                  scrollbarWidth: 'none',
+                  flex: 1,
+                  minWidth: 0,
                 }}
               >
-                <I n={n.icon} s={18} />
+                {filterOptions.map(([k, l]) => {
+                  const on = notifFilter === k;
+                  return (
+                    <P
+                      key={k}
+                      onPress={() => setNotifFilter(k)}
+                      style={{
+                        padding: '7px 14px',
+                        borderRadius: 20,
+                        fontWeight: 700,
+                        fontSize: 13,
+                        flexShrink: 0,
+                        border: '1px solid ' + (on ? G : BD),
+                        background: on ? '#dcfce7' : '#fff',
+                        color: on ? '#15803d' : MU,
+                      }}
+                    >
+                      {l}
+                    </P>
+                  );
+                })}
               </div>
-              <V style={{ flex: 1, gap: 2 }}>
-                <b style={{ fontSize: 13.5 }}>{n.title}</b>
-                <span style={{ fontSize: 12, color: MU }}>{n.subtitle}</span>
-              </V>
-              {!n.read && <span style={{ width: 8, height: 8, borderRadius: 4, background: G, alignSelf: 'center' }} />}
-            </P>
-          ))}
+            </div>
+          </div>
 
-          {!visibleNotifications.length && (
-            <div style={{ textAlign: 'center', padding: '48px 0', color: MU }}>You have no notifications.</div>
-          )}
+          {/* List grouped by Today, Yesterday, Earlier */}
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 12px calc(20px + env(safe-area-inset-bottom,0px))' }}>
+            {groupedItems.map(([l, items]) => (
+              <React.Fragment key={l}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: '#64748b', padding: '8px 4px 8px' }}>
+                  {l}
+                </div>
+                {items.map((n) => (
+                  <P
+                    key={n.id}
+                    onPress={() => handleNotificationClick(n)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      padding: '12px 12px',
+                      borderRadius: 14,
+                      background: n.read ? '#fff' : '#f0fdf4',
+                      border: '1px solid ' + (n.read ? BD : '#bbf7d0'),
+                      marginBottom: 8,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 21,
+                        background: (n.color || G) + '1a',
+                        color: n.color || G,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <I n={n.icon || 'bell'} s={19} />
+                    </div>
+                    <V style={{ flex: 1, gap: 2, minWidth: 0 }}>
+                      <b style={{ fontSize: 14.5, fontWeight: n.read ? 600 : 700, lineHeight: 1.3 }}>
+                        {n.title}
+                      </b>
+                      <span
+                        style={{
+                          fontSize: 12.5,
+                          color: MU,
+                          lineHeight: 1.35,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {n.subtitle}
+                      </span>
+                    </V>
+                    <V style={{ alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color: MU, whiteSpace: 'nowrap' }}>
+                        {agoN(n.createdAt)}
+                      </span>
+                      {!n.read && <span style={{ width: 9, height: 9, borderRadius: 5, background: G }} />}
+                    </V>
+                  </P>
+                ))}
+              </React.Fragment>
+            ))}
+
+            {!list.length && (
+              <div style={{ padding: '60px 16px', textAlign: 'center', color: MU }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10, color: '#94a3b8' }}>
+                  <I n="bell" s={34} />
+                </div>
+                {notifFilter === 'unread' ? "You're all caught up." : 'Nothing here yet.'}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  })();
 
   return (
     <V style={{ flexDirection: wide ? 'row' : 'column', minHeight: '100vh', width: '100%' }}>
@@ -1599,8 +1641,9 @@ export const App: React.FC = () => {
       )}
 
       {activeModal?.type === 'reminder' && (
-        <TaskForm
+        <ReminderFormModal
           clientId={activeModal.data?.clientId}
+          serviceId={activeModal.data?.serviceId}
           clients={clients}
           team={team}
           onClose={() => setActiveModal(null)}

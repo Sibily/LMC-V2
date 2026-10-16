@@ -3,6 +3,7 @@ import { V, R, P, card, G, MU, BD, TODAY, add, fmt, lbl, t12, tcol } from '../co
 import { I } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { Task, Note } from '../types';
+import { api } from '../api/client';
 
 interface HomeProps {
   clients: any[];
@@ -10,14 +11,24 @@ interface HomeProps {
   notes: Note[];
   onNavigate: (page: string, params?: any) => void;
   onOpenModal: (type: string, data?: any) => void;
+  onRefreshTasks?: () => void;
 }
 
-export const Home: React.FC<HomeProps> = ({ clients, tasks, notes, onNavigate, onOpenModal }) => {
-  const { user, settings } = useAuth();
+export const Home: React.FC<HomeProps> = ({
+  clients,
+  tasks,
+  notes,
+  onNavigate,
+  onOpenModal,
+  onRefreshTasks,
+}) => {
+  const { user, settings, toast } = useAuth();
   const isMgmt = user?.role === 'management' && settings?.viewMode === 'management';
 
   const nr = (t: Task) => t.type !== 'Reminder';
   const myTasks = tasks.filter((t) => (isMgmt ? true : t.whoUserId === user?.id));
+
+  const nowHM = new Date().toTimeString().slice(0, 5);
 
   const td = myTasks.filter((t) => nr(t) && !t.done && t.date === TODAY);
   const ov = myTasks.filter((t) => nr(t) && !t.done && t.date < TODAY);
@@ -25,15 +36,46 @@ export const Home: React.FC<HomeProps> = ({ clients, tasks, notes, onNavigate, o
   const rm = myTasks.filter((t) => t.type === 'Reminder' && !t.done);
   const dtn = myTasks.filter((t) => t.done && nr(t) && t.doneAt === TODAY);
 
+  // Overdue calculation matching prototype:
+  // Includes overdue tasks + overdue reminders (past date OR today with past time)
+  const overdueReminders = myTasks.filter(
+    (t) => t.type === 'Reminder' && !t.done && (t.date < TODAY || (t.date === TODAY && t.time < nowHM))
+  );
+  const totalOverdueCount = ov.length + overdueReminders.length;
+
   const dates = Array.from(new Set(upc.map((t) => t.date))).slice(0, 3);
   const hr = new Date().getHours();
   const greeting = hr < 12 ? 'Good Morning' : hr < 17 ? 'Good Afternoon' : 'Good Evening';
+
+  const toggleReminder = async (t: Task) => {
+    try {
+      await api.tasks.toggle(t.id);
+      toast(t.done ? 'Reopened' : 'Reminder done · see Completed');
+      if (onRefreshTasks) onRefreshTasks();
+    } catch (e: any) {
+      toast('Failed to update reminder');
+    }
+  };
 
   const stats = [
     { label: 'Total clients', count: clients.length, icon: 'users', color: '#2563eb', bg: '#dbeafe', action: () => onNavigate('clients') },
     { label: 'Tasks today', count: td.length, icon: 'task', color: G, bg: '#dcfce7', action: () => onNavigate('tasks', { filter: 'today' }) },
     { label: 'Upcoming tasks', count: upc.length, icon: 'cal', color: '#7c3aed', bg: '#ede9fe', action: () => onNavigate('tasks', { filter: 'up' }) },
-    { label: 'Overdue', count: ov.length, icon: 'flag', color: '#dc2626', bg: '#fee2e2', action: () => onNavigate('tasks', { filter: 'today' }), alert: ov.length > 0 },
+    {
+      label: 'Overdue',
+      count: totalOverdueCount,
+      icon: 'flag',
+      color: '#dc2626',
+      bg: '#fee2e2',
+      action: () => {
+        if (ov.length) {
+          onNavigate('tasks', { filter: 'today' });
+        } else if (overdueReminders.length) {
+          onNavigate('reminders', { tab: 'past' });
+        }
+      },
+      alert: totalOverdueCount > 0,
+    },
     { label: 'Reminders', count: rm.length, icon: 'bell', color: '#db2777', bg: '#fce7f3', action: () => onNavigate('reminders') },
     { label: 'Done today', count: dtn.length, icon: 'checks', color: '#15803d', bg: '#dcfce7', action: () => onNavigate('tasks', { filter: 'today', tab: 'done' }) },
   ];
@@ -52,6 +94,7 @@ export const Home: React.FC<HomeProps> = ({ clients, tasks, notes, onNavigate, o
       <P onPress={() => onOpenModal('taskView', t)} style={{ flex: 1, flexDirection: 'column', gap: 3 }}>
         <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</b>
         <span style={{ color: MU, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {isMgmt && t.whoUser?.name ? t.whoUser.name + ' · ' : ''}
           {t.client?.name ? t.client.name + ' · ' : ''}
           {t.desc}
         </span>
@@ -75,6 +118,92 @@ export const Home: React.FC<HomeProps> = ({ clients, tasks, notes, onNavigate, o
       </span>
     </V>
   );
+
+  // Dedicated remRow matching prototype:
+  const remRow = (t: Task) => {
+    const isLate = !t.done && (t.date < TODAY || (t.date === TODAY && t.time < nowHM));
+    return (
+      <V key={t.id} style={{ ...R, flexDirection: 'row', gap: 12, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+        <P
+          onPress={() => toggleReminder(t)}
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            border: '2px solid ' + (t.done ? G : isLate ? '#fca5a5' : '#cbd5e1'),
+            background: t.done ? G : '#fff',
+            color: '#fff',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {t.done && <I n="tick" s={15} />}
+        </P>
+        <P onPress={() => onOpenModal('taskView', t)} style={{ flex: 1, flexDirection: 'column', gap: 4 }}>
+          <b
+            style={{
+              textDecoration: t.done ? 'line-through' : 'none',
+              color: t.done ? MU : '#0f172a',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.title}
+          </b>
+          <V style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                color: t.client?.name ? '#1d4ed8' : MU,
+                background: t.client?.name ? '#dbeafe' : '#f1f5f9',
+                padding: '2px 8px',
+                borderRadius: 20,
+              }}
+            >
+              <I n={t.client?.name ? 'users' : 'user'} s={11} />
+              {t.client?.name || 'Me'}
+            </span>
+            {t.service?.name && (
+              <span style={{ fontSize: 11, color: MU }}>
+                {t.service.name}
+              </span>
+            )}
+          </V>
+        </P>
+        <V style={{ alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              fontWeight: 600,
+              color: t.done ? MU : isLate ? '#dc2626' : '#be185d',
+              background: t.done ? '#f1f5f9' : isLate ? '#fee2e2' : '#fce7f3',
+              padding: '3px 8px',
+              borderRadius: 20,
+            }}
+          >
+            <I n="clock" s={11} />
+            {t.done
+              ? t12(t.doneTime || '')
+              : (t.date === TODAY || t.date < TODAY ? '' : fmt(t.date) + ' · ') + t12(t.time)}
+          </span>
+          {isLate && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626' }}>
+              MISSED
+            </span>
+          )}
+        </V>
+      </V>
+    );
+  };
 
   return (
     <V style={{ gap: 14 }}>
@@ -212,10 +341,19 @@ export const Home: React.FC<HomeProps> = ({ clients, tasks, notes, onNavigate, o
         ))}
       </div>
 
-      {/* Today's Tasks */}
-      <V style={card}>
+      {/* Today's Tasks (Whole Card Clickable) */}
+      <V
+        onClick={(e: any) => {
+          if (e.target.closest('[role="button"]')) return;
+          onNavigate('tasks', { filter: 'today' });
+        }}
+        style={{ ...card, cursor: 'pointer' }}
+      >
         <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <b>Today's Tasks</b>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <I n="task" s={18} />
+            <b>Today's Tasks</b>
+          </span>
           <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <P
               title="Add task"
@@ -236,7 +374,7 @@ export const Home: React.FC<HomeProps> = ({ clients, tasks, notes, onNavigate, o
             <span style={{ background: '#f1f5f9', color: MU, fontSize: 12, fontWeight: 600, padding: '2px 9px', borderRadius: 20 }}>
               {td.length + ov.length}
             </span>
-            <P onPress={() => onNavigate('tasks')} style={{ color: G, fontWeight: 600, fontSize: 13 }}>
+            <P onPress={() => onNavigate('tasks', { filter: 'today' })} style={{ color: G, fontWeight: 600, fontSize: 13 }}>
               See all
             </P>
           </V>
@@ -254,10 +392,19 @@ export const Home: React.FC<HomeProps> = ({ clients, tasks, notes, onNavigate, o
           : !ov.length && <span style={{ color: MU, padding: '10px 0' }}>Nothing scheduled today.</span>}
       </V>
 
-      {/* Reminders */}
-      <V style={card}>
+      {/* Reminders (Whole Card Clickable, using remRow) */}
+      <V
+        onClick={(e: any) => {
+          if (e.target.closest('[role="button"]')) return;
+          onNavigate('reminders');
+        }}
+        style={{ ...card, cursor: 'pointer' }}
+      >
         <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <b>Reminders</b>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <I n="bell" s={18} />
+            <b>Reminders</b>
+          </span>
           <V style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <P
               title="Add reminder"
@@ -284,16 +431,25 @@ export const Home: React.FC<HomeProps> = ({ clients, tasks, notes, onNavigate, o
           </V>
         </V>
         {rm.length ? (
-          rm.slice(0, 3).map(trow)
+          rm.slice(0, 3).map(remRow)
         ) : (
           <span style={{ color: MU, padding: '10px 0' }}>No reminders. Add one with Add Reminder.</span>
         )}
       </V>
 
-      {/* Notes */}
-      <V style={card}>
+      {/* Notes (Whole Card Clickable) */}
+      <V
+        onClick={(e: any) => {
+          if (e.target.closest('[role="button"]')) return;
+          onNavigate('notes');
+        }}
+        style={{ ...card, cursor: 'pointer' }}
+      >
         <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <b>My Notes</b>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <I n="note" s={18} />
+            <b>My Notes</b>
+          </span>
           <V style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <P
               title="Add note"
@@ -345,10 +501,19 @@ export const Home: React.FC<HomeProps> = ({ clients, tasks, notes, onNavigate, o
         )}
       </V>
 
-      {/* Upcoming Tasks */}
-      <V style={card}>
+      {/* Upcoming Tasks (Whole Card Clickable) */}
+      <V
+        onClick={(e: any) => {
+          if (e.target.closest('[role="button"]')) return;
+          onNavigate('tasks', { filter: 'up' });
+        }}
+        style={{ ...card, cursor: 'pointer' }}
+      >
         <V style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <b>Upcoming Tasks</b>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <I n="cal" s={18} />
+            <b>Upcoming Tasks</b>
+          </span>
           <V style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <P
               title="Add task"
