@@ -17,6 +17,7 @@ import { NotesPage } from './pages/Notes';
 import { ReportsPage } from './pages/Reports';
 import { TeamPage } from './pages/Team';
 import { SettingsPage } from './pages/Settings';
+import { EmpProfilePage } from './pages/EmpProfile';
 
 // Modals
 import { ClientForm, TaskForm, SvcForm, StageForm, DecideForm } from './components/Modals';
@@ -47,6 +48,9 @@ function parseHash(): { page: string; id?: string; params?: any } {
   if (page === 'clients' && id) {
     return { page: 'clientDetail', id, params };
   }
+  if (page === 'emp' && id) {
+    return { page: 'emp', id, params };
+  }
   return { page, id, params };
 }
 
@@ -54,8 +58,11 @@ function getHashFromNav(n: { page: string; id?: string; params?: any }): string 
   if (n.page === 'clientDetail' && n.id) {
     return `#/clients/${n.id}`;
   }
+  if (n.page === 'emp' && n.id) {
+    return `#/emp/${encodeURIComponent(n.id)}`;
+  }
   let h = `#/${n.page}`;
-  if (n.id && n.page !== 'clientDetail') {
+  if (n.id && n.page !== 'clientDetail' && n.page !== 'emp') {
     h += `/${encodeURIComponent(n.id)}`;
   }
   if (n.params && Object.keys(n.params).length) {
@@ -295,7 +302,7 @@ export const App: React.FC = () => {
           setSearchFocused(false);
           setMobileSearchOpen(false);
           setSearchText('');
-          setActiveModal({ type: 'emp', data: u });
+          setNav({ page: 'emp', id: u.id });
         },
       })),
       ...matchNotes.map((n) => ({
@@ -1135,6 +1142,7 @@ export const App: React.FC = () => {
         onBack={() => setNav({ page: 'clients' })}
         onRefreshClient={loadAllData}
         onOpenModal={(t, d) => setActiveModal({ type: t, data: d })}
+        onNavigate={(p, id) => setNav({ page: p, id })}
       />
     );
   } else if (nav.page === 'inbox') {
@@ -1186,6 +1194,19 @@ export const App: React.FC = () => {
       <TeamPage
         team={team}
         tasks={tasks}
+        onOpenModal={(t, d) => setActiveModal({ type: t, data: d })}
+        onNavigate={(p, id) => setNav({ page: p, id })}
+      />
+    );
+  } else if (nav.page === 'emp') {
+    const selectedEmp = team.find((u) => u.id === nav.id || u.name === nav.id) || team[0];
+    pageContent = (
+      <EmpProfilePage
+        user={selectedEmp}
+        tasks={tasks}
+        clients={clients}
+        onBack={() => setNav({ page: 'team' })}
+        onRefreshTasks={loadAllData}
         onOpenModal={(t, d) => setActiveModal({ type: t, data: d })}
       />
     );

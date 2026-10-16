@@ -8,7 +8,8 @@ export const TeamPage: React.FC<{
   team: any[];
   tasks: Task[];
   onOpenModal: (type: string, data?: any) => void;
-}> = ({ team, tasks, onOpenModal }) => {
+  onNavigate?: (page: string, id?: string) => void;
+}> = ({ team, tasks, onOpenModal, onNavigate }) => {
   const { user } = useAuth();
 
   return (
@@ -28,33 +29,45 @@ export const TeamPage: React.FC<{
 
           return (
             <V key={u.id} style={{ ...R, flexDirection: 'row', gap: 12, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <Av n={u.name} s={46} url={u.avatarUrl} />
-              <V style={{ flex: 1, gap: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <b>{u.name}</b>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: 20,
-                      color: u.role === 'management' ? '#166534' : '#475569',
-                      background: u.role === 'management' ? '#dcfce7' : '#f1f5f9',
-                    }}
-                  >
-                    {u.role === 'management' ? 'Management' : 'Employee'}
-                  </span>
-                </div>
-                <span style={{ fontSize: 12, color: MU }}>{u.email}</span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '2px 8px', borderRadius: 20 }}>
-                    To do {todo}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: 20 }}>
-                    Done {done}
-                  </span>
-                </div>
-              </V>
+              <P
+                onPress={() => onNavigate ? onNavigate('emp', u.id) : undefined}
+                style={{
+                  ...R,
+                  flex: 1,
+                  minWidth: 0,
+                  flexDirection: 'row',
+                  gap: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                <Av n={u.name} s={46} url={u.avatarUrl} />
+                <V style={{ flex: 1, gap: 4, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <b>{u.name}</b>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 20,
+                        color: u.role === 'management' ? '#166534' : '#475569',
+                        background: u.role === 'management' ? '#dcfce7' : '#f1f5f9',
+                      }}
+                    >
+                      {u.role === 'management' ? 'Management' : 'Employee'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 12, color: MU }}>{u.email}</span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '2px 8px', borderRadius: 20 }}>
+                      To do {todo}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: 20 }}>
+                      Done {done}
+                    </span>
+                  </div>
+                </V>
+              </P>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <IB
                   n="lock"

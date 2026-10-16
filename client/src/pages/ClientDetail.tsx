@@ -12,6 +12,7 @@ interface ClientDetailProps {
   onBack: () => void;
   onRefreshClient: () => void;
   onOpenModal: (type: string, data?: any) => void;
+  onNavigate?: (page: string, id?: string) => void;
 }
 
 export const ClientDetail: React.FC<ClientDetailProps> = ({
@@ -21,6 +22,7 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
   onBack,
   onRefreshClient,
   onOpenModal,
+  onNavigate,
 }) => {
   const { user, toast } = useAuth();
   const [tab, setTab] = useState<'Overview' | 'Services' | 'Contact' | 'Documents' | 'Quotations' | 'Communication' | 'Activity'>('Overview');
@@ -201,6 +203,23 @@ export const ClientDetail: React.FC<ClientDetailProps> = ({
             <span style={{ fontSize: 12, color: MU }}>
               {[client.company || client.type, client.loc].filter(Boolean).join(' · ')}
             </span>
+            {(client.owner?.name || (typeof client.owner === 'string' ? client.owner : null)) && (
+              <span style={{ fontSize: 12, color: MU }}>
+                Created by{' '}
+                <span
+                  onClick={() => {
+                    const empId = client.owner?.id || client.ownerId;
+                    if (onNavigate && empId) {
+                      onNavigate('emp', empId);
+                    }
+                  }}
+                  title="Open profile"
+                  style={{ display: 'inline', color: G, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {client.owner?.name || (typeof client.owner === 'string' ? client.owner : 'Owner')}
+                </span>
+              </span>
+            )}
           </V>
 
           {/* Action circles: Call & WhatsApp */}
